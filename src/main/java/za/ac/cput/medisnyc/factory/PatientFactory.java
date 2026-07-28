@@ -1,5 +1,4 @@
-package za.ac.cput.factory;
-
+package za.ac.cput.medisnyc.factory;
 
 
 /* PatientFactory.java
