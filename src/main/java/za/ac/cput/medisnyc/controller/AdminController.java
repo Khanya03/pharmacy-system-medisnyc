@@ -2,7 +2,7 @@ package za.ac.cput.medisnyc.controller;
 
 /* AdminController.java
    Module 6: Reports & Administration - User Management API / Audit Log.
-   Author: Lisakhanya Mpahla
+   Author: Phemelo
 */
 
 import za.ac.cput.medisnyc.domain.AuditLog;
