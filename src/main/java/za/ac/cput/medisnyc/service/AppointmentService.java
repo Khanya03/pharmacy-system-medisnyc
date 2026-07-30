@@ -1,6 +1,5 @@
 package za.ac.cput.medisnyc.service;
 
-
 /* AppointmentService.java
    Module 2: Patient & Appointment Module.
    Author: Phemelo
@@ -8,7 +7,9 @@ package za.ac.cput.medisnyc.service;
 
 import za.ac.cput.medisnyc.domain.Appointment;
 import za.ac.cput.medisnyc.domain.AppointmentStatus;
+import za.ac.cput.medisnyc.dto.CreateAppointmentRequest;
 import za.ac.cput.medisnyc.repository.jpa.AppointmentJpaRepository;
+import za.ac.cput.medisnyc.repository.jpa.DoctorJpaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,20 +21,31 @@ import java.util.UUID;
 public class AppointmentService {
 
     private final AppointmentJpaRepository appointmentRepository;
+    private final DoctorJpaRepository doctorRepository;
 
     @Autowired
-    public AppointmentService(AppointmentJpaRepository appointmentRepository) {
+    public AppointmentService(AppointmentJpaRepository appointmentRepository, DoctorJpaRepository doctorRepository) {
         this.appointmentRepository = appointmentRepository;
+        this.doctorRepository = doctorRepository;
     }
 
     @Transactional
-    public Appointment bookAppointment(Appointment appointment) {
-        Appointment toSave = appointment.getAppointmentId() == null || appointment.getAppointmentId().isBlank()
-                ? new Appointment.Builder().copy(appointment)
+    public Appointment bookAppointment(CreateAppointmentRequest request) {
+        if (!doctorRepository.existsById(request.getDoctorId())) {
+            throw new IllegalArgumentException("Doctor not found: " + request.getDoctorId());
+        }
+
+        Appointment appointment = new Appointment.Builder()
                 .setAppointmentId("APT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
-                .build()
-                : appointment;
-        return appointmentRepository.save(toSave);
+                .setPatientId(request.getPatientId())
+                .setDoctorId(request.getDoctorId())
+                .setAppointmentDate(request.getAppointmentDate())
+                .setReason(request.getReason())
+                .setNotes(request.getNotes())
+                .setStatus(AppointmentStatus.SCHEDULED)
+                .build();
+
+        return appointmentRepository.save(appointment);
     }
 
     public List<Appointment> getByPatient(String patientId) {

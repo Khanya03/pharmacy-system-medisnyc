@@ -7,8 +7,11 @@ package za.ac.cput.medisnyc.controller;
 
 import za.ac.cput.medisnyc.domain.Appointment;
 import za.ac.cput.medisnyc.domain.AppointmentStatus;
+import za.ac.cput.medisnyc.dto.CreateAppointmentRequest;
 import za.ac.cput.medisnyc.service.AppointmentService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,8 +29,9 @@ public class AppointmentController {
     }
 
     @PostMapping
-    public ResponseEntity<Appointment> bookAppointment(@RequestBody Appointment appointment) {
-        return ResponseEntity.ok(appointmentService.bookAppointment(appointment));
+    public ResponseEntity<Appointment> bookAppointment(@Valid @RequestBody CreateAppointmentRequest request) {
+        Appointment created = appointmentService.bookAppointment(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping("/patient/{patientId}")
