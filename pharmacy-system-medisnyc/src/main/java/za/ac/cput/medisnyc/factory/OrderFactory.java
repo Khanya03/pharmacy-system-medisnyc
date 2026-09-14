@@ -9,10 +9,10 @@ package za.ac.cput.medisnyc.factory;
 
 
 
-import za.ac.cput.medisnyc.domain.Order;
-import za.ac.cput.medisnyc.domain.OrderItem;
-import za.ac.cput.medisnyc.domain.OrderStatus;
-import za.ac.cput.medisnyc.util.Helper;
+import za.ac.cput.domain.Order;
+import za.ac.cput.domain.OrderItem;
+import za.ac.cput.domain.OrderStatus;
+import za.ac.cput.util.Helper;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
