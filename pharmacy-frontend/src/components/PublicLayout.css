@@ -1,0 +1,355 @@
+
+.public-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.public-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 40px;
+    background: var(--paper-raised);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.public-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.public-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--pine);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.public-nav-links {
+    display: flex;
+    gap: 28px;
+}
+
+.public-nav-link {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    text-decoration: none;
+}
+
+.public-nav-link:hover {
+    color: var(--pine);
+}
+
+.public-nav-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.public-btn {
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.public-btn-primary {
+    background: var(--pine);
+    color: #fff;
+}
+
+.public-btn-primary:hover {
+    background: var(--pine-dark);
+}
+
+.public-btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--border);
+}
+
+.public-btn-ghost:hover {
+    background: var(--paper);
+}
+
+@media (max-width: 800px) {
+    .public-nav-links {
+        display: none;
+    }
+    .public-nav {
+        padding: 14px 20px;
+    }
+}
+
+/* ---------- Footer ---------- */
+
+.public-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    background: var(--paper-raised);
+    padding: 36px 40px 20px;
+}
+
+.public-footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 24px;
+    max-width: 1080px;
+    margin: 0 auto;
+}
+
+.public-footer-tag {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 10px;
+    max-width: 34ch;
+}
+
+.public-footer-links {
+    display: flex;
+    gap: 22px;
+}
+
+.public-footer-links a {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.public-footer-links a:hover {
+    color: var(--pine);
+}
+
+.public-footer-copy {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 28px;
+}
+
+/* ---------- Shared marketing building blocks ---------- */
+
+.pub-section {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 64px 40px;
+}
+
+.pub-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+}
+
+.pub-hero {
+    text-align: center;
+    padding: 80px 40px 60px;
+    background: linear-gradient(180deg, #eef4f1 0%, var(--paper) 100%);
+    border-bottom: 1px solid var(--border);
+}
+
+.pub-hero h1 {
+    font-size: 42px;
+    max-width: 20ch;
+    margin: 0 auto;
+    line-height: 1.15;
+}
+
+.pub-hero p {
+    max-width: 56ch;
+    margin: 18px auto 0;
+    color: var(--ink-soft);
+    font-size: 16px;
+}
+
+.pub-hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.pub-hero-actions a {
+    text-decoration: none;
+}
+
+.pub-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.pub-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.pub-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px;
+}
+
+.pub-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--amber-soft);
+    color: var(--pine-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+}
+
+.pub-card h3 {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.pub-card p {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+}
+
+.pub-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    counter-reset: step;
+}
+
+.pub-step {
+    position: relative;
+    padding-left: 6px;
+}
+
+.pub-step-num {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--amber);
+    margin-bottom: 8px;
+}
+
+.pub-step h3 {
+    font-size: 15px;
+    margin-bottom: 6px;
+}
+
+.pub-step p {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+}
+
+.pub-cta {
+    text-align: center;
+    background: var(--pine);
+    border-radius: 20px;
+    padding: 56px 40px;
+    color: #fff;
+    margin: 0 40px 64px;
+}
+
+.pub-cta h2 {
+    color: #fff;
+    font-size: 26px;
+}
+
+.pub-cta p {
+    color: #cfe0d8;
+    margin-top: 10px;
+}
+
+.pub-cta a {
+    display: inline-block;
+    margin-top: 22px;
+    text-decoration: none;
+}
+
+.pub-values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+}
+
+.pub-value-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    background: var(--paper-raised);
+}
+
+.pub-value-card h4 {
+    font-family: var(--font-display);
+    font-size: 14.5px;
+    margin-bottom: 6px;
+    color: var(--pine-dark);
+}
+
+.pub-value-card p {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+}
+
+.pub-contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 40px;
+}
+
+@media (max-width: 800px) {
+    .pub-contact-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pub-contact-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    background: var(--paper-raised);
+    margin-bottom: 14px;
+}
+
+.pub-contact-card h4 {
+    font-size: 13.5px;
+    margin-bottom: 4px;
+}
+
+.pub-contact-card p {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+}
