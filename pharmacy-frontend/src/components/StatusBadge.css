@@ -1,0 +1,33 @@
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-amber {
+  background: var(--amber-soft);
+  color: #7a4d1a;
+}
+
+.status-pine {
+  background: #d9ecdf;
+  color: var(--pine-dark);
+}
+
+.status-sage {
+  background: #e4ece8;
+  color: #3f5f52;
+}
+
+.status-error {
+  background: var(--error-soft);
+  color: var(--error);
+}
