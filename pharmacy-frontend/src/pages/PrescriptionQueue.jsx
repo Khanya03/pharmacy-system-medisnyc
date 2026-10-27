@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppShell from "../components/AppShell";
 import { Alert } from "../components/Field";
 import StatusBadge from "../components/StatusBadge";
@@ -8,6 +8,7 @@ import "./Appointments.css";
 import "./Prescriptions.css";
 
 const POLL_INTERVAL_MS = 10000;
+const STATUSES = ["PENDING", "RECEIVED", "PREPARING", "READY_FOR_COLLECTION", "COLLECTED"];
 
 const NEXT_LABEL = {
     PENDING: "Mark received",
@@ -16,48 +17,98 @@ const NEXT_LABEL = {
     READY_FOR_COLLECTION: "Mark collected",
 };
 
+function processingStatus(prescription) {
+    return prescription.processingStatus || "PENDING";
+}
+
+function issuedDate(date) {
+    if (!date) return "—";
+    return new Date(`${date}T00:00:00`).toLocaleDateString();
+}
+
 export default function PrescriptionQueue() {
     const [queue, setQueue] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [advancingId, setAdvancingId] = useState(null);
+    const [rowErrors, setRowErrors] = useState({});
+    const [toast, setToast] = useState(null);
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const advanceInFlightRef = useRef(false);
+    const toastRef = useRef(null);
 
-    function load() {
-        processingApi
-            .getQueue()
-            .then(setQueue)
-            .catch((err) => setError(parseApiError(err).message))
-            .finally(() => setLoading(false));
-    }
-
-    useEffect(() => {
-        load();
-        const timer = setInterval(() => {
-            // Don't refetch out from under an in-flight advance click.
-            setAdvancingId((current) => {
-                if (!current) load();
-                return current;
-            });
-        }, POLL_INTERVAL_MS);
-        return () => clearInterval(timer);
+    const load = useCallback(async () => {
+        try {
+            const items = await processingApi.getQueue();
+            setQueue(items);
+            setError("");
+        } catch (err) {
+            setError(parseApiError(err).message);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
+    useEffect(() => {
+        queueMicrotask(load);
+        const timer = setInterval(() => {
+            if (!advanceInFlightRef.current) load();
+        }, POLL_INTERVAL_MS);
+        return () => clearInterval(timer);
+    }, [load]);
+
+    useEffect(() => {
+        if (toast) toastRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, [toast]);
+
+    const visibleQueue = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        return queue.filter((prescription) => {
+            const status = processingStatus(prescription);
+            const matchesStatus = statusFilter === "ALL" || status === statusFilter;
+            const matchesSearch = !query || [
+                prescription.prescriptionId,
+                prescription.patientName,
+                prescription.patientId,
+                prescription.doctorName,
+                prescription.doctorId,
+            ].some((value) => value?.toLowerCase().includes(query));
+            return matchesStatus && matchesSearch;
+        });
+    }, [queue, search, statusFilter]);
+
     async function handleAdvance(prescriptionId) {
+        if (advanceInFlightRef.current) return;
+
+        advanceInFlightRef.current = true;
         setAdvancingId(prescriptionId);
-        setError("");
+        setRowErrors((previous) => {
+            const next = { ...previous };
+            delete next[prescriptionId];
+            return next;
+        });
+        setToast(null);
+
         try {
             const updated = await processingApi.advanceStatus(prescriptionId);
-            setQueue((prev) =>
-                updated.processingStatus === "COLLECTED"
-                    ? prev.filter((p) => p.prescriptionId !== prescriptionId)
-                    : prev.map((p) => (p.prescriptionId === prescriptionId ? updated : p))
-            );
+            setQueue((previous) => updated.processingStatus === "COLLECTED"
+                ? previous.filter((item) => item.prescriptionId !== prescriptionId)
+                : previous.map((item) => item.prescriptionId === prescriptionId
+                    ? { ...item, ...updated }
+                    : item));
+            await load();
         } catch (err) {
             const message = parseApiError(err).message;
-            setError(message.toLowerCase().includes("insufficient stock")
-                ? `Cannot start preparation. ${message}`
-                : message);
+            const medicineNames = Array.isArray(err?.response?.data?.outOfStockMedicines)
+                ? err.response.data.outOfStockMedicines
+                : [];
+            const failure = { message, medicineNames };
+            setRowErrors((previous) => ({ ...previous, [prescriptionId]: failure }));
+            setToast({ prescriptionId, ...failure });
+            await load();
         } finally {
+            advanceInFlightRef.current = false;
             setAdvancingId(null);
         }
     }
@@ -70,38 +121,104 @@ export default function PrescriptionQueue() {
                 Pending → Received → Preparing → Ready for Collection → Collected.
             </p>
 
+            {toast && (
+                <div className="rx-queue-toast" role="alert" aria-live="assertive" ref={toastRef}>
+                    <div>
+                        <strong>{toast.message}</strong>
+                        {toast.medicineNames.length > 0 && (
+                            <div>Out of stock: {toast.medicineNames.join(", ")}</div>
+                        )}
+                    </div>
+                    <button type="button" onClick={() => setToast(null)} aria-label="Dismiss error">×</button>
+                </div>
+            )}
+
             <Alert type="error">{error}</Alert>
+
+            <div className="rx-queue-filters">
+                <label className="rx-queue-filter">
+                    <span>Search patient, doctor, or RX ID</span>
+                    <input
+                        type="search"
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Name or prescription ID"
+                    />
+                </label>
+                <label className="rx-queue-filter rx-queue-status-filter">
+                    <span>Processing status</span>
+                    <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                        <option value="ALL">All statuses</option>
+                        {STATUSES.map((status) => (
+                            <option key={status} value={status}>
+                                {status.replaceAll("_", " ")}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+            </div>
 
             {loading ? (
                 <p className="appts-loading">Loading queue…</p>
-            ) : queue.length === 0 ? (
+            ) : visibleQueue.length === 0 ? (
                 <div className="appts-empty">
-                    <p>Nothing in the queue — everything's been collected.</p>
+                    <p>{queue.length === 0
+                        ? "Nothing in the queue — everything's been collected."
+                        : "No prescriptions match the current search and filters."}</p>
                 </div>
             ) : (
                 <div className="appts-list">
-                    {queue.map((p) => (
-                        <div className="appts-row" key={p.prescriptionId}>
-                            <div className="appts-row-main">
-                                <div className="appts-row-id">{p.prescriptionId}</div>
-                                <div className="appts-row-parties">Patient: {p.patientId}</div>
-                                <div className="appts-row-parties">Doctor: {p.doctorId}</div>
-                                {p.linkedOrderId && (
-                                    <div className="appts-row-parties">Order: {p.linkedOrderId}</div>
-                                )}
+                    {visibleQueue.map((prescription) => {
+                        const status = processingStatus(prescription);
+                        const rowError = rowErrors[prescription.prescriptionId];
+                        const inactive = prescription.status !== "ACTIVE";
+                        return (
+                            <div className="appts-row rx-queue-row" key={prescription.prescriptionId}>
+                                <div className="appts-row-main">
+                                    <div className="appts-row-id">{prescription.prescriptionId}</div>
+                                    <div className="appts-row-parties">
+                                        Patient: {prescription.patientName || "Unknown patient"}
+                                        <span className="rx-queue-secondary-id">{prescription.patientId}</span>
+                                    </div>
+                                    <div className="appts-row-parties">
+                                        Doctor: {prescription.doctorName || "Unknown doctor"}
+                                        <span className="rx-queue-secondary-id">{prescription.doctorId}</span>
+                                    </div>
+                                    <div className="appts-row-parties">Issued: {issuedDate(prescription.dateIssued)}</div>
+                                    <ul className="rx-queue-medicines">
+                                        {(prescription.medicines || []).map((medicine) => (
+                                            <li key={`${medicine.medicationId}-${medicine.quantity}`}>
+                                                {medicine.name} × {medicine.quantity}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    {prescription.linkedOrderId && (
+                                        <div className="appts-row-parties">Order: {prescription.linkedOrderId}</div>
+                                    )}
+                                </div>
+                                <div className="appts-row-side rx-queue-actions">
+                                    <StatusBadge status={status} />
+                                    <button
+                                        className="rx-queue-advance-btn"
+                                        onClick={() => handleAdvance(prescription.prescriptionId)}
+                                        disabled={Boolean(advancingId) || inactive || !NEXT_LABEL[status]}
+                                    >
+                                        {advancingId === prescription.prescriptionId
+                                            ? "Updating…"
+                                            : NEXT_LABEL[status] || "No further action"}
+                                    </button>
+                                    {rowError && (
+                                        <div className="rx-queue-row-error" role="alert">
+                                            <div>{rowError.message}</div>
+                                            {rowError.medicineNames.length > 0 && (
+                                                <div>Out of stock: {rowError.medicineNames.join(", ")}</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="appts-row-side">
-                                <StatusBadge status={p.processingStatus} />
-                                <button
-                                    className="rx-queue-advance-btn"
-                                    onClick={() => handleAdvance(p.prescriptionId)}
-                                    disabled={advancingId === p.prescriptionId}
-                                >
-                                    {advancingId === p.prescriptionId ? "Updating…" : NEXT_LABEL[p.processingStatus] || "Advance"}
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </AppShell>

@@ -6,6 +6,7 @@ package za.ac.cput.medisnyc.service;
 */
 
 import za.ac.cput.medisnyc.domain.Notification;
+import org.springframework.security.access.AccessDeniedException;
 import za.ac.cput.medisnyc.repository.jpa.NotificationJpaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,9 +44,12 @@ public class NotificationService {
     }
 
     @Transactional
-    public Notification markAsRead(Long notificationId) {
+    public Notification markAsRead(Long notificationId, String patientId) {
         Notification existing = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new IllegalArgumentException("Notification not found: " + notificationId));
+        if (!existing.getPatientId().equals(patientId)) {
+            throw new AccessDeniedException("Patients may only mark their own notifications as read");
+        }
         Notification updated = new Notification.Builder()
                 .setNotificationId(existing.getNotificationId())
                 .setPatientId(existing.getPatientId())

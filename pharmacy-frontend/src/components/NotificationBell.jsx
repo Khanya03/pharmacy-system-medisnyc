@@ -16,23 +16,40 @@ function timeAgo(isoString) {
     return `${Math.floor(hours / 24)}d ago`;
 }
 
-export default function NotificationBell({ patientId }) {
+export default function NotificationBell() {
     const [notifications, setNotifications] = useState([]);
     const [open, setOpen] = useState(false);
+    const [loadError, setLoadError] = useState("");
     const wrapRef = useRef(null);
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!patientId) return;
+        function reportError(error, action) {
+            console.warn(`Unable to ${action} prescription notifications`, error);
+            setLoadError(error?.response?.data?.message || "Notifications could not be loaded.");
+        }
 
         function load() {
-            notificationApi.getForPatient(patientId).then(setNotifications).catch(() => {});
+            notificationApi.getMine()
+                .then((items) => {
+                    setNotifications(items);
+                    setLoadError("");
+                })
+                .catch((error) => reportError(error, "load"));
+        }
+
+        function handleFocus() {
+            load();
         }
 
         load();
         const timer = setInterval(load, POLL_INTERVAL_MS);
-        return () => clearInterval(timer);
-    }, [patientId]);
+        window.addEventListener("focus", handleFocus);
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener("focus", handleFocus);
+        };
+    }, []);
 
     useEffect(() => {
         function handleClickOutside(e) {
@@ -44,22 +61,22 @@ export default function NotificationBell({ patientId }) {
 
     const unreadCount = notifications.filter((n) => !n.read).length;
 
-    function handleItemClick(n) {
+    async function handleItemClick(n) {
         if (!n.read) {
-            notificationApi
-                .markAsRead(n.notificationId)
-                .then(() => {
-                    setNotifications((prev) =>
-                        prev.map((item) => (item.notificationId === n.notificationId ? { ...item, read: true } : item))
-                    );
-                })
-                .catch(() => {});
+            try {
+                await notificationApi.markAsRead(n.notificationId);
+                setNotifications((prev) =>
+                    prev.map((item) => (item.notificationId === n.notificationId ? { ...item, read: true } : item))
+                );
+            } catch (error) {
+                console.warn("Unable to mark prescription notification as read", error);
+                setLoadError(error?.response?.data?.message || "This notification could not be marked as read.");
+                return;
+            }
         }
         setOpen(false);
         navigate("/prescriptions/track");
     }
-
-    if (!patientId) return null;
 
     return (
         <div className="bell-wrap" ref={wrapRef}>
@@ -76,7 +93,9 @@ export default function NotificationBell({ patientId }) {
             {open && (
                 <div className="bell-panel">
                     <div className="bell-panel-head">Notifications</div>
-                    {notifications.length === 0 ? (
+                    {loadError ? (
+                        <div className="bell-error" role="alert">{loadError}</div>
+                    ) : notifications.length === 0 ? (
                         <div className="bell-empty">Nothing yet — we'll let you know as your prescriptions move along.</div>
                     ) : (
                         notifications.map((n) => (

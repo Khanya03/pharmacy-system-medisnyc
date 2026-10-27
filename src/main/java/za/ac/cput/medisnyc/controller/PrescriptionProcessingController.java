@@ -8,6 +8,7 @@ package za.ac.cput.medisnyc.controller;
 import za.ac.cput.medisnyc.domain.Prescription;
 import za.ac.cput.medisnyc.domain.PrescriptionStatus;
 import za.ac.cput.medisnyc.domain.User;
+import za.ac.cput.medisnyc.dto.PrescriptionQueueItem;
 import za.ac.cput.medisnyc.service.PrescriptionProcessingService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -30,7 +31,7 @@ public class PrescriptionProcessingController {
     }
 
     @GetMapping("/queue")
-    public ResponseEntity<List<Prescription>> getQueue() {
+    public ResponseEntity<List<PrescriptionQueueItem>> getQueue() {
         return ResponseEntity.ok(processingService.getQueue());
     }
 

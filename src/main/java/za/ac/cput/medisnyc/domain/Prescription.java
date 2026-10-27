@@ -10,10 +10,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "prescriptions")
@@ -34,6 +36,7 @@ public class Prescription {
     // separate from the clinical status (ACTIVE/EXPIRED/CANCELLED) above.
     @Enumerated(EnumType.STRING)
     private PrescriptionProcessingStatus processingStatus;
+    private LocalDateTime createdAt;
     @Transient
     private String linkedOrderId;
 
@@ -52,11 +55,23 @@ public class Prescription {
         this.status = builder.status;
         this.processingStatus = builder.processingStatus != null ?
                 builder.processingStatus : PrescriptionProcessingStatus.PENDING;
+        this.createdAt = builder.createdAt;
         this.linkedOrderId = builder.linkedOrderId;
+    }
+
+    @PrePersist
+    private void setCreatedAtIfMissing() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 
     public PrescriptionProcessingStatus getProcessingStatus() {
         return processingStatus;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
     public String getLinkedOrderId() {
@@ -114,6 +129,7 @@ public class Prescription {
         private int refillsUsed;
         private PrescriptionStatus status;
         private PrescriptionProcessingStatus processingStatus;
+        private LocalDateTime createdAt;
         private String linkedOrderId;
 
         public Builder setPrescriptionId(String prescriptionId) {
@@ -163,6 +179,11 @@ public class Prescription {
 
         public Builder setProcessingStatus(PrescriptionProcessingStatus processingStatus) {
             this.processingStatus = processingStatus;
+            return this;
+        }
+
+        public Builder setCreatedAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
             return this;
         }
 

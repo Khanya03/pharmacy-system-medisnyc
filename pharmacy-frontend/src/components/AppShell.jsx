@@ -5,7 +5,7 @@ import NotificationBell from "./NotificationBell";
 import "./AppShell.css";
 
 export default function AppShell({ children }) {
-    const { user, logout, primaryRole, profileId } = useAuth();
+    const { user, logout, primaryRole } = useAuth();
     const navigate = useNavigate();
     const role = primaryRole();
 
@@ -25,7 +25,7 @@ export default function AppShell({ children }) {
                 <div className="shell-nav-right">
                     {user && (
                         <>
-                            {role === "PATIENT" && <NotificationBell patientId={profileId()} />}
+                            {role === "PATIENT" && <NotificationBell />}
                             <span className="shell-role-badge">{role}</span>
                             <Link to="/profile" className="shell-link">
                                 {user.username}

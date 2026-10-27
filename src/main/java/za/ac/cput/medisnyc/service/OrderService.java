@@ -10,10 +10,13 @@ import za.ac.cput.medisnyc.domain.Inventory;
 import za.ac.cput.medisnyc.domain.Order;
 import za.ac.cput.medisnyc.domain.OrderItem;
 import za.ac.cput.medisnyc.domain.OrderStatus;
+import za.ac.cput.medisnyc.domain.Medication;
 import za.ac.cput.medisnyc.domain.Prescription;
 import za.ac.cput.medisnyc.domain.PrescriptionItem;
+import za.ac.cput.medisnyc.exception.InsufficientStockException;
 import za.ac.cput.medisnyc.factory.OrderFactory;
 import za.ac.cput.medisnyc.repository.jpa.InventoryJpaRepository;
+import za.ac.cput.medisnyc.repository.jpa.MedicationJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.OrderItemJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.OrderJpaRepository;
 import za.ac.cput.medisnyc.util.Helper;
@@ -34,16 +37,19 @@ public class OrderService implements PrescriptionOrderService {
     private final OrderJpaRepository orderRepository;
     private final OrderItemJpaRepository orderItemRepository;
     private final InventoryJpaRepository inventoryRepository;
+    private final MedicationJpaRepository medicationRepository;
     private final AuditLogService auditLogService;
 
     @Autowired
     public OrderService(OrderJpaRepository orderRepository,
                         OrderItemJpaRepository orderItemRepository,
                         InventoryJpaRepository inventoryRepository,
+                        MedicationJpaRepository medicationRepository,
                         AuditLogService auditLogService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.inventoryRepository = inventoryRepository;
+        this.medicationRepository = medicationRepository;
         this.auditLogService = auditLogService;
     }
 
@@ -111,7 +117,7 @@ public class OrderService implements PrescriptionOrderService {
             if (remaining > 0) unavailable.add(request.getKey());
         }
         if (!unavailable.isEmpty()) {
-            throw new IllegalStateException("Insufficient stock for medications: " + String.join(", ", unavailable));
+            throw insufficientStock(unavailable);
         }
 
         Order order = create(prescription.getPatientId(), prescription.getPrescriptionId(), "SYSTEM",
@@ -169,14 +175,11 @@ public class OrderService implements PrescriptionOrderService {
                 throw new IllegalArgumentException("Medication does not match stock batch " + req.inventoryId());
             }
             if (!batch.canFulfillOrder(req.quantity())) {
-                throw new IllegalStateException(
-                        "Not enough stock for " + batch.getMedicationId() + " (have " + batch.getStockLevel()
-                                + ", need " + req.quantity() + ") or stock is expired");
+                throw insufficientStock(List.of(batch.getMedicationId()));
             }
             if (inventoryRepository.decrementStockAtomically(
                     req.inventoryId(), req.quantity(), LocalDate.now()) == 0) {
-                throw new IllegalStateException(
-                        "Not enough available stock for " + batch.getMedicationId() + " or stock is expired");
+                throw insufficientStock(List.of(batch.getMedicationId()));
             }
 
             OrderItem item = new OrderItem.Builder()
@@ -203,6 +206,15 @@ public class OrderService implements PrescriptionOrderService {
                 "Order created for patient " + patientId + ", total R" + total);
 
         return getById(saved.getOrderId());
+    }
+
+    private InsufficientStockException insufficientStock(List<String> medicationIds) {
+        List<String> medicineNames = medicationIds.stream()
+                .map(medicationId -> medicationRepository.findById(medicationId)
+                        .map(Medication::getMedicationName)
+                        .orElse(medicationId))
+                .toList();
+        return new InsufficientStockException(medicineNames);
     }
 
     @Transactional
