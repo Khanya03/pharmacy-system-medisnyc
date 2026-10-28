@@ -5,10 +5,13 @@ package za.ac.cput.medisnyc.security;
    Author: Phemelo
 */
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -25,6 +28,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -33,12 +37,15 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectMapper objectMapper;
 
     @Autowired
     public SecurityConfig(CustomUserDetailsService userDetailsService,
-                          JwtAuthenticationFilter jwtAuthenticationFilter) {
+                          JwtAuthenticationFilter jwtAuthenticationFilter,
+                          ObjectMapper objectMapper) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.objectMapper = objectMapper;
     }
 
     @Bean
@@ -85,6 +92,7 @@ public class SecurityConfig {
                         // Module 6: Admin only
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "PHARMACIST")
+                        .requestMatchers("/api/notifications/**").hasRole("PATIENT")
 
                         // Patient records and orders are restricted by both role and owner checks.
                         .requestMatchers(HttpMethod.GET, "/api/patients").hasAnyRole("ADMIN", "DOCTOR")
@@ -117,6 +125,8 @@ public class SecurityConfig {
                         // (by id or by their patientId) just needs read access.
                         .requestMatchers(HttpMethod.GET, "/api/prescription-processing/queue",
                                 "/api/prescription-processing/ready-for-collection")
+                        .hasAnyRole("ADMIN", "PHARMACIST")
+                        .requestMatchers(HttpMethod.PUT, "/api/prescription-processing/*/advance")
                         .hasAnyRole("ADMIN", "PHARMACIST")
                         .requestMatchers(HttpMethod.GET, "/api/prescription-processing/doctor/**")
                         .hasAnyRole("ADMIN", "DOCTOR")
@@ -153,6 +163,12 @@ public class SecurityConfig {
                         // Everything else just needs to be authenticated
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(exceptions -> exceptions.accessDeniedHandler((request, response, exception) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    objectMapper.writeValue(response.getOutputStream(),
+                            Map.of("message", "You do not have permission to perform this action"));
+                }))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -11,10 +11,24 @@ import za.ac.cput.medisnyc.repository.jpa.PrescriptionItemJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.PrescriptionJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.AuditLogJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.NotificationJpaRepository;
+import za.ac.cput.medisnyc.repository.jpa.PatientJpaRepository;
+import za.ac.cput.medisnyc.repository.jpa.DoctorJpaRepository;
+import za.ac.cput.medisnyc.repository.jpa.MedicationJpaRepository;
+import za.ac.cput.medisnyc.domain.Notification;
+import za.ac.cput.medisnyc.domain.Doctor;
+import za.ac.cput.medisnyc.domain.Medication;
+import za.ac.cput.medisnyc.domain.Patient;
+import za.ac.cput.medisnyc.domain.PrescriptionItem;
+import za.ac.cput.medisnyc.dto.PrescriptionQueueItem;
+import za.ac.cput.medisnyc.exception.InsufficientStockException;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,18 +70,21 @@ class PrescriptionProcessingServiceTest {
         when(prescriptions.findByIdForUpdate("RX-1")).thenReturn(Optional.of(existing));
         PrescriptionOrderService orders = mock(PrescriptionOrderService.class);
         when(orders.createForPrescription(any(Prescription.class), any()))
-                .thenThrow(new IllegalStateException("Insufficient stock for medications: MED-1"));
+                .thenThrow(new InsufficientStockException(List.of("Gaviscon")));
         NotificationJpaRepository notificationRepository = mock(NotificationJpaRepository.class);
         NotificationService notifications = new NotificationService(notificationRepository);
         PrescriptionProcessingService service = new PrescriptionProcessingService(
                 prescriptions, mock(PrescriptionCollectionJpaRepository.class), notifications,
                 new AuditLogService(mock(AuditLogJpaRepository.class)),
-                mock(PrescriptionItemJpaRepository.class), orders);
+                mock(PrescriptionItemJpaRepository.class), orders,
+                mock(PatientJpaRepository.class), mock(DoctorJpaRepository.class),
+                mock(MedicationJpaRepository.class));
 
-        IllegalStateException error = assertThrows(IllegalStateException.class,
+        InsufficientStockException error = assertThrows(InsufficientStockException.class,
                 () -> service.advanceStatus("RX-1"));
 
-        assertEquals("Insufficient stock for medications: MED-1", error.getMessage());
+        assertEquals("Insufficient stock for medications: Gaviscon", error.getMessage());
+        assertEquals(PrescriptionProcessingStatus.RECEIVED, existing.getProcessingStatus());
         verify(prescriptions, never()).save(any(Prescription.class));
         verify(notificationRepository, never()).save(any());
     }
@@ -110,12 +127,130 @@ class PrescriptionProcessingServiceTest {
         verify(orders).cancelForPrescription("RX-1", "SYSTEM");
     }
 
+    @Test
+    void queueIsOrderedNewestFirstAndExcludesCollectedRows() {
+        Prescription older = prescription(PrescriptionProcessingStatus.PENDING);
+        ReflectionTestUtils.setField(older, "createdAt", LocalDateTime.now().minusMinutes(5));
+        Prescription newer = prescription(PrescriptionProcessingStatus.RECEIVED);
+        ReflectionTestUtils.setField(newer, "prescriptionId", "RX-2");
+        ReflectionTestUtils.setField(newer, "createdAt", LocalDateTime.now());
+        Prescription collected = prescription(PrescriptionProcessingStatus.COLLECTED);
+        ReflectionTestUtils.setField(collected, "prescriptionId", "RX-3");
+        PrescriptionJpaRepository prescriptions = mock(PrescriptionJpaRepository.class);
+        when(prescriptions.findAll()).thenReturn(List.of(older, newer, collected));
+
+        List<PrescriptionQueueItem> queue = service(prescriptions,
+                mock(PrescriptionOrderService.class)).getQueue();
+
+        assertEquals(List.of("RX-2", "RX-1"),
+                queue.stream().map(PrescriptionQueueItem::prescriptionId).toList());
+    }
+
+    @Test
+    void nullProcessingStatusIsTreatedAsPendingInQueueAndWhenAdvancing() {
+        Prescription existing = prescription(PrescriptionProcessingStatus.PENDING);
+        ReflectionTestUtils.setField(existing, "processingStatus", null);
+        PrescriptionJpaRepository prescriptions = mock(PrescriptionJpaRepository.class);
+        when(prescriptions.findAll()).thenReturn(List.of(existing));
+        when(prescriptions.findByIdForUpdate("RX-1")).thenReturn(Optional.of(existing));
+        when(prescriptions.save(any(Prescription.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        PrescriptionProcessingService service = service(prescriptions, mock(PrescriptionOrderService.class));
+
+        assertEquals(PrescriptionProcessingStatus.PENDING,
+                service.getQueue().get(0).processingStatus());
+        assertEquals(PrescriptionProcessingStatus.RECEIVED,
+                service.advanceStatus("RX-1").getProcessingStatus());
+    }
+
+    @Test
+    void queueIncludesPatientDoctorAndMedicineDetails() {
+        PrescriptionJpaRepository prescriptions = mock(PrescriptionJpaRepository.class);
+        when(prescriptions.findAll()).thenReturn(List.of(prescription(PrescriptionProcessingStatus.PENDING)));
+        PrescriptionItem item = new PrescriptionItem.Builder()
+                .setPrescriptionItemId("RXI-1")
+                .setPrescriptionId("RX-1")
+                .setMedicationId("MED-1")
+                .setQuantity(3)
+                .build();
+        PrescriptionItemJpaRepository items = mock(PrescriptionItemJpaRepository.class);
+        when(items.findByPrescriptionId("RX-1")).thenReturn(List.of(item));
+        Patient patient = new Patient.Builder().setMedicalId("PAT-1")
+                .setFirstName("Patient").setLastName("Name").build();
+        PatientJpaRepository patients = mock(PatientJpaRepository.class);
+        when(patients.findById("PAT-1")).thenReturn(Optional.of(patient));
+        Doctor doctor = new Doctor.Builder().setDoctorId("DOC-1")
+                .setFirstName("Doctor").setLastName("Name").build();
+        DoctorJpaRepository doctors = mock(DoctorJpaRepository.class);
+        when(doctors.findById("DOC-1")).thenReturn(Optional.of(doctor));
+        Medication medication = new Medication.Builder().setMedicationId("MED-1")
+                .setMedicationName("Gaviscon").build();
+        MedicationJpaRepository medications = mock(MedicationJpaRepository.class);
+        when(medications.findById("MED-1")).thenReturn(Optional.of(medication));
+        PrescriptionProcessingService service = new PrescriptionProcessingService(
+                prescriptions, mock(PrescriptionCollectionJpaRepository.class),
+                new NotificationService(mock(NotificationJpaRepository.class)),
+                new AuditLogService(mock(AuditLogJpaRepository.class)), items,
+                mock(PrescriptionOrderService.class), patients, doctors, medications);
+
+        PrescriptionQueueItem row = service.getQueue().get(0);
+
+        assertEquals("Patient Name", row.patientName());
+        assertEquals("Doctor Name", row.doctorName());
+        assertEquals("Gaviscon", row.medicines().get(0).name());
+        assertEquals(3, row.medicines().get(0).quantity());
+    }
+
+    @Test
+    void createsNotificationForEveryProcessingStatusChange() {
+        AtomicReference<Prescription> current = new AtomicReference<>(
+                prescription(PrescriptionProcessingStatus.PENDING));
+        PrescriptionJpaRepository prescriptions = mock(PrescriptionJpaRepository.class);
+        when(prescriptions.findByIdForUpdate("RX-1")).thenAnswer(invocation -> Optional.of(current.get()));
+        when(prescriptions.save(any(Prescription.class))).thenAnswer(invocation -> {
+            Prescription saved = invocation.getArgument(0);
+            current.set(saved);
+            return saved;
+        });
+
+        Order order = new Order.Builder().setOrderId("ORD-1").setPrescriptionId("RX-1")
+                .setPatientId("PAT-1").setDispensingStatus(OrderStatus.PROCESSING).build();
+        PrescriptionOrderService orders = mock(PrescriptionOrderService.class);
+        when(orders.getByPrescriptionId("RX-1")).thenReturn(order);
+        NotificationJpaRepository notificationRepository = mock(NotificationJpaRepository.class);
+        when(notificationRepository.save(any(Notification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        PrescriptionProcessingService service = new PrescriptionProcessingService(
+                prescriptions, mock(PrescriptionCollectionJpaRepository.class),
+                new NotificationService(notificationRepository),
+                new AuditLogService(mock(AuditLogJpaRepository.class)),
+                mock(PrescriptionItemJpaRepository.class), orders,
+                mock(PatientJpaRepository.class), mock(DoctorJpaRepository.class),
+                mock(MedicationJpaRepository.class));
+
+        for (int i = 0; i < 4; i++) {
+            service.advanceStatus("RX-1");
+        }
+
+        ArgumentCaptor<Notification> notifications = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository, org.mockito.Mockito.times(4)).save(notifications.capture());
+        assertEquals(List.of(
+                        "Prescription RX-1 status changed to Received.",
+                        "Prescription RX-1 status changed to Preparing.",
+                        "Prescription RX-1 status changed to Ready for collection.",
+                        "Prescription RX-1 status changed to Collected."),
+                notifications.getAllValues().stream().map(Notification::getMessage).toList());
+        assertEquals(List.of("RX-1", "RX-1", "RX-1", "RX-1"),
+                notifications.getAllValues().stream().map(Notification::getPrescriptionId).toList());
+    }
+
     private PrescriptionProcessingService service(PrescriptionJpaRepository prescriptions,
                                                    PrescriptionOrderService orders) {
         return new PrescriptionProcessingService(prescriptions, mock(PrescriptionCollectionJpaRepository.class),
                 new NotificationService(mock(NotificationJpaRepository.class)),
                 new AuditLogService(mock(AuditLogJpaRepository.class)),
-                mock(PrescriptionItemJpaRepository.class), orders);
+                mock(PrescriptionItemJpaRepository.class), orders,
+                mock(PatientJpaRepository.class), mock(DoctorJpaRepository.class),
+                mock(MedicationJpaRepository.class));
     }
 
     private Prescription prescription(PrescriptionProcessingStatus processingStatus) {

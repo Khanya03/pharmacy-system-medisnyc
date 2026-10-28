@@ -12,6 +12,8 @@ import za.ac.cput.medisnyc.repository.jpa.InventoryJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.OrderItemJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.OrderJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.AuditLogJpaRepository;
+import za.ac.cput.medisnyc.repository.jpa.MedicationJpaRepository;
+import za.ac.cput.medisnyc.exception.InsufficientStockException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -78,11 +80,12 @@ class OrderServicePrescriptionTest {
         when(orders.findFirstByPrescriptionId("RX-1")).thenReturn(Optional.empty());
         OrderService service = service(orders, mock(OrderItemJpaRepository.class), inventory);
 
-        IllegalStateException error = assertThrows(IllegalStateException.class,
+        InsufficientStockException error = assertThrows(InsufficientStockException.class,
                 () -> service.createForPrescription(prescription(),
                         List.of(item("MED-1", 4), item("MED-2", 2))));
 
         assertEquals("Insufficient stock for medications: MED-1, MED-2", error.getMessage());
+        assertEquals(List.of("MED-1", "MED-2"), error.getMedicineNames());
         verify(orders, never()).save(any(Order.class));
     }
 
@@ -115,7 +118,7 @@ class OrderServicePrescriptionTest {
                                  InventoryJpaRepository inventory) {
         when(inventory.decrementStockAtomically(anyString(), anyInt(), any()))
                 .thenReturn(1);
-        return new OrderService(orders, items, inventory,
+        return new OrderService(orders, items, inventory, mock(MedicationJpaRepository.class),
                 new AuditLogService(mock(AuditLogJpaRepository.class)));
     }
 

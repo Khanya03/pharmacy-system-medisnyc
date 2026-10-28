@@ -12,6 +12,14 @@ import za.ac.cput.medisnyc.domain.PrescriptionProcessingStatus;
 import za.ac.cput.medisnyc.domain.PrescriptionStatus;
 import za.ac.cput.medisnyc.domain.Order;
 import za.ac.cput.medisnyc.domain.OrderStatus;
+import za.ac.cput.medisnyc.domain.Doctor;
+import za.ac.cput.medisnyc.domain.Medication;
+import za.ac.cput.medisnyc.domain.Patient;
+import za.ac.cput.medisnyc.dto.PrescriptionQueueItem;
+import za.ac.cput.medisnyc.exception.ResourceNotFoundException;
+import za.ac.cput.medisnyc.repository.jpa.DoctorJpaRepository;
+import za.ac.cput.medisnyc.repository.jpa.MedicationJpaRepository;
+import za.ac.cput.medisnyc.repository.jpa.PatientJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.PrescriptionCollectionJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.PrescriptionItemJpaRepository;
 import za.ac.cput.medisnyc.repository.jpa.PrescriptionJpaRepository;
@@ -21,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -33,6 +42,9 @@ public class PrescriptionProcessingService {
     private final AuditLogService auditLogService;
     private final PrescriptionItemJpaRepository prescriptionItemRepository;
     private final PrescriptionOrderService orderService;
+    private final PatientJpaRepository patientRepository;
+    private final DoctorJpaRepository doctorRepository;
+    private final MedicationJpaRepository medicationRepository;
 
     // Defines which status can move to which next status.
     private static final Map<PrescriptionProcessingStatus, PrescriptionProcessingStatus> NEXT_STATUS = Map.of(
@@ -48,21 +60,31 @@ public class PrescriptionProcessingService {
                                          NotificationService notificationService,
                                          AuditLogService auditLogService,
                                          PrescriptionItemJpaRepository prescriptionItemRepository,
-                                         PrescriptionOrderService orderService) {
+                                         PrescriptionOrderService orderService,
+                                         PatientJpaRepository patientRepository,
+                                         DoctorJpaRepository doctorRepository,
+                                         MedicationJpaRepository medicationRepository) {
         this.prescriptionRepository = prescriptionRepository;
         this.collectionRepository = collectionRepository;
         this.notificationService = notificationService;
         this.auditLogService = auditLogService;
         this.prescriptionItemRepository = prescriptionItemRepository;
         this.orderService = orderService;
+        this.patientRepository = patientRepository;
+        this.doctorRepository = doctorRepository;
+        this.medicationRepository = medicationRepository;
     }
 
-    public List<Prescription> getQueue() {
-        // Everything not yet collected - the pharmacist's prescription queue.
+    public List<PrescriptionQueueItem> getQueue() {
         return prescriptionRepository.findAll().stream()
-                .filter(p -> p.getStatus() == PrescriptionStatus.ACTIVE
-                        && p.getProcessingStatus() != PrescriptionProcessingStatus.COLLECTED)
-                .map(p -> withLinkedOrder(p, orderService.getByPrescriptionId(p.getPrescriptionId())))
+                .filter(p -> normalizedStatus(p.getProcessingStatus())
+                        != PrescriptionProcessingStatus.COLLECTED)
+                .sorted(Comparator
+                        .comparing(Prescription::getDateIssued,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Prescription::getCreatedAt,
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(this::toQueueItem)
                 .toList();
     }
 
@@ -82,13 +104,13 @@ public class PrescriptionProcessingService {
 
     public Prescription getById(String prescriptionId) {
         return prescriptionRepository.findById(prescriptionId)
-                .orElseThrow(() -> new IllegalArgumentException("Prescription not found: " + prescriptionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Prescription not found: " + prescriptionId));
     }
 
     @Transactional
     public Prescription advanceStatus(String prescriptionId) {
         Prescription existing = prescriptionRepository.findByIdForUpdate(prescriptionId)
-                .orElseThrow(() -> new IllegalArgumentException("Prescription not found: " + prescriptionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Prescription not found: " + prescriptionId));
         if (existing.getStatus() != PrescriptionStatus.ACTIVE) {
             throw new IllegalStateException("Prescription is " + existing.getStatus().name().toLowerCase());
         }
@@ -100,7 +122,7 @@ public class PrescriptionProcessingService {
                     "Prescription expired before collection");
             return withLinkedOrder(savedExpired, orderService.getByPrescriptionId(prescriptionId));
         }
-        PrescriptionProcessingStatus current = existing.getProcessingStatus();
+        PrescriptionProcessingStatus current = normalizedStatus(existing.getProcessingStatus());
         PrescriptionProcessingStatus next = NEXT_STATUS.get(current);
 
         if (next == null) {
@@ -123,16 +145,12 @@ public class PrescriptionProcessingService {
                 .setRefillsUsed(existing.getRefillsUsed())
                 .setStatus(existing.getStatus())
                 .setProcessingStatus(next)
+                .setCreatedAt(existing.getCreatedAt())
                 .build();
 
         Prescription saved = prescriptionRepository.save(updated);
         auditLogService.log("SYSTEM", "ADVANCE_PRESCRIPTION", saved.getPrescriptionId(),
                 "Processing status changed from " + current + " to " + next);
-
-        if (next == PrescriptionProcessingStatus.READY_FOR_COLLECTION) {
-            notificationService.notify(saved.getPatientId(), saved.getPrescriptionId(),
-                    "Your prescription " + saved.getPrescriptionId() + " is ready for collection.");
-        }
 
         if (next == PrescriptionProcessingStatus.COLLECTED) {
             PrescriptionCollection collection = new PrescriptionCollection.Builder()
@@ -149,6 +167,9 @@ public class PrescriptionProcessingService {
             orderService.updateStatus(order.getOrderId(), OrderStatus.COMPLETED, "SYSTEM");
         }
 
+        notificationService.notify(saved.getPatientId(), saved.getPrescriptionId(),
+                "Prescription " + saved.getPrescriptionId() + " status changed to "
+                        + statusLabel(next) + ".");
         return withLinkedOrder(saved, orderService.getByPrescriptionId(saved.getPrescriptionId()));
     }
 
@@ -181,6 +202,7 @@ public class PrescriptionProcessingService {
                 .setRefillsUsed(prescription.getRefillsUsed())
                 .setStatus(status)
                 .setProcessingStatus(prescription.getProcessingStatus())
+                .setCreatedAt(prescription.getCreatedAt())
                 .build();
     }
 
@@ -196,7 +218,64 @@ public class PrescriptionProcessingService {
                 .setRefillsUsed(prescription.getRefillsUsed())
                 .setStatus(prescription.getStatus())
                 .setProcessingStatus(prescription.getProcessingStatus())
+                .setCreatedAt(prescription.getCreatedAt())
                 .setLinkedOrderId(order == null ? null : order.getOrderId())
                 .build();
+    }
+
+    private PrescriptionQueueItem toQueueItem(Prescription prescription) {
+        Patient patient = prescription.getPatientId() == null
+                ? null : patientRepository.findById(prescription.getPatientId()).orElse(null);
+        Doctor doctor = prescription.getDoctorId() == null
+                ? null : doctorRepository.findById(prescription.getDoctorId()).orElse(null);
+        List<PrescriptionQueueItem.Medicine> medicines = prescriptionItemRepository
+                .findByPrescriptionId(prescription.getPrescriptionId()).stream()
+                .map(item -> {
+                    String medicationId = item.getMedicationId();
+                    String medicationName = medicationId == null || medicationId.isBlank()
+                            ? "Unknown medication"
+                            : medicationRepository.findById(medicationId)
+                                    .map(Medication::getMedicationName)
+                                    .orElse(medicationId);
+                    return new PrescriptionQueueItem.Medicine(
+                            medicationId, medicationName, item.getQuantity());
+                })
+                .toList();
+        Order order = orderService.getByPrescriptionId(prescription.getPrescriptionId());
+
+        return new PrescriptionQueueItem(
+                prescription.getPrescriptionId(),
+                prescription.getPatientId(),
+                fullName(patient == null ? null : patient.getFirstName(),
+                        patient == null ? null : patient.getLastName(), "Unknown patient"),
+                prescription.getDoctorId(),
+                fullName(doctor == null ? null : doctor.getFirstName(),
+                        doctor == null ? null : doctor.getLastName(), "Unknown doctor"),
+                prescription.getDateIssued(),
+                prescription.getCreatedAt(),
+                prescription.getStatus(),
+                normalizedStatus(prescription.getProcessingStatus()),
+                order == null ? null : order.getOrderId(),
+                medicines);
+    }
+
+    private PrescriptionProcessingStatus normalizedStatus(PrescriptionProcessingStatus status) {
+        return status == null ? PrescriptionProcessingStatus.PENDING : status;
+    }
+
+    private String statusLabel(PrescriptionProcessingStatus status) {
+        return switch (status) {
+            case RECEIVED -> "Received";
+            case PREPARING -> "Preparing";
+            case READY_FOR_COLLECTION -> "Ready for collection";
+            case COLLECTED -> "Collected";
+            case PENDING -> "Pending";
+        };
+    }
+
+    private String fullName(String firstName, String lastName, String fallback) {
+        String name = ((firstName == null ? "" : firstName) + " "
+                + (lastName == null ? "" : lastName)).trim();
+        return name.isEmpty() ? fallback : name;
     }
 }

@@ -1,14 +1,10 @@
 
 import client from "./client";
 
-// Module 5 — Notify Patient API. Maps onto NotificationController (/api/notifications).
+// Module 5 — Notify Patient API. Patient identity is resolved by the backend.
 
-export function getForPatient(patientId) {
-    return client.get(`/api/notifications/patient/${patientId}`).then((res) => res.data);
-}
-
-export function getUnread(patientId) {
-    return client.get(`/api/notifications/patient/${patientId}/unread`).then((res) => res.data);
+export function getMine() {
+    return client.get("/api/notifications/me").then((res) => res.data);
 }
 
 export function markAsRead(notificationId) {
