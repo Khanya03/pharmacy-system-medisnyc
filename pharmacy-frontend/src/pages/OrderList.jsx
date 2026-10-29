@@ -1,13 +1,17 @@
 
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import AdminNav from "../components/AdminNav";
 import { Field, SelectField, Alert } from "../components/Field";
 import { useAuth } from "../context/useAuth";
 import * as orderApi from "../api/orderApi";
 import * as inventoryApi from "../api/inventoryApi";
+import * as paymentApi from "../api/paymentApi";
 import { parseApiError } from "../utils/parseApiError";
+import StatusBadge from "../components/StatusBadge";
+import { PaymentCheckoutModal } from "./PaymentCheckout";
 import "./Admin.css";
 import "./Appointments.css";
 import "./Inventory.css";
@@ -20,7 +24,7 @@ function emptyItem() {
 }
 
 export default function OrdersList() {
-  const { profileId } = useAuth();
+  const { profileId, primaryRole } = useAuth();
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +36,10 @@ export default function OrdersList() {
   const [items, setItems] = useState([emptyItem()]);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [rowErrors, setRowErrors] = useState({});
+  const [checkoutOrderId, setCheckoutOrderId] = useState(null);
+  const [refundBusyId, setRefundBusyId] = useState(null);
+  const isAdmin = primaryRole() === "ADMIN";
 
   function loadOrders() {
     orderApi
@@ -102,11 +110,39 @@ export default function OrdersList() {
     setBusyOrderId(order.orderId);
     try {
       await orderApi.updateOrderStatus(order.orderId, next);
+      setRowErrors((previous) => ({ ...previous, [order.orderId]: "" }));
       loadOrders();
     } catch (err) {
-      setError(parseApiError(err).message);
+      setRowErrors((previous) => ({ ...previous, [order.orderId]: parseApiError(err).message }));
     } finally {
       setBusyOrderId(null);
+    }
+  }
+
+  async function handleReceipt(order) {
+    try {
+      const payments = await paymentApi.getPaymentsForOrder(order.orderId);
+      const payment = payments.find((item) => item.status === "PAID" || item.status === "REFUNDED");
+      if (payment) window.location.assign(`/receipts/${encodeURIComponent(payment.paymentId)}`);
+      else setRowErrors((previous) => ({ ...previous, [order.orderId]: "No receipt is available." }));
+    } catch (err) {
+      setRowErrors((previous) => ({ ...previous, [order.orderId]: parseApiError(err).message }));
+    }
+  }
+
+  async function handleRefund(order) {
+    const reason = window.prompt("Enter the reason for this refund:");
+    if (!reason?.trim()) return;
+    if (!window.confirm(`Refund payment R${Number(order.totalAmount || 0).toFixed(2)} for order ${order.orderId}?\nReason: ${reason.trim()}`)) return;
+    setRefundBusyId(order.orderId);
+    try {
+      await paymentApi.refundPayment(order.paymentId, reason.trim());
+      setRowErrors((previous) => ({ ...previous, [order.orderId]: "" }));
+      loadOrders();
+    } catch (err) {
+      setRowErrors((previous) => ({ ...previous, [order.orderId]: parseApiError(err).message }));
+    } finally {
+      setRefundBusyId(null);
     }
   }
 
@@ -189,6 +225,7 @@ export default function OrdersList() {
               <th>Items</th>
               <th>Total</th>
               <th>Status</th>
+              <th>Payment</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -199,8 +236,23 @@ export default function OrdersList() {
                 <td>{o.patientId}</td>
                 <td>{(o.items || []).length}</td>
                 <td>R{o.totalAmount}</td>
-                <td>{o.dispensingStatus}</td>
+                <td><StatusBadge status={o.dispensingStatus} /></td>
+                <td><StatusBadge status={o.paymentStatus || "UNPAID"} /></td>
                 <td>
+                  {(o.paymentStatus || "UNPAID") === "UNPAID" && (
+                    <Link className="admin-toggle-btn" to={`/orders/${encodeURIComponent(o.orderId)}/pay`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        setCheckoutOrderId(o.orderId);
+                      }}>Charge card</Link>
+                  )}
+                  {o.paymentStatus === "PAID" && (
+                    <button className="admin-toggle-btn" onClick={() => handleReceipt(o)}>Receipt</button>
+                  )}
+                  {isAdmin && o.paymentStatus === "PAID" && (
+                    <button className="admin-delete-btn" disabled={refundBusyId === o.orderId}
+                      onClick={() => handleRefund(o)}>{refundBusyId === o.orderId ? "Refunding…" : "Refund"}</button>
+                  )}
                   {o.dispensingStatus !== "COMPLETED" && o.dispensingStatus !== "CANCELLED" && (
                     <button
                       className="admin-toggle-btn"
@@ -210,11 +262,16 @@ export default function OrdersList() {
                       Advance
                     </button>
                   )}
+                  {rowErrors[o.orderId] && <div className="order-row-error" role="alert">{rowErrors[o.orderId]}</div>}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+      {checkoutOrderId && (
+        <PaymentCheckoutModal orderId={checkoutOrderId} onClose={() => setCheckoutOrderId(null)}
+          onPaid={loadOrders} />
       )}
     </AppShell>
   );

@@ -16,6 +16,10 @@ const STATUS_STYLES = {
   // Prescription clinical status
   ACTIVE: "status-pine",
   EXPIRED: "status-error",
+  UNPAID: "status-amber",
+  PAID: "status-pine",
+  REFUNDED: "status-error",
+  FAILED: "status-error",
 };
 
 function label(status) {

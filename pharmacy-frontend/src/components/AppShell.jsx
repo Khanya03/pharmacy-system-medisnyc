@@ -26,6 +26,15 @@ export default function AppShell({ children }) {
                     {user && (
                         <>
                             {role === "PATIENT" && <NotificationBell />}
+                            {role === "PATIENT" && (
+                                <Link to="/my-orders" className="shell-link">My orders &amp; payments</Link>
+                            )}
+                            {(role === "ADMIN" || role === "PHARMACIST") && (
+                                <>
+                                    <Link to="/orders" className="shell-link">Orders</Link>
+                                    <Link to="/reports" className="shell-link">Reports</Link>
+                                </>
+                            )}
                             <span className="shell-role-badge">{role}</span>
                             <Link to="/profile" className="shell-link">
                                 {user.username}

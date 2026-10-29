@@ -3,6 +3,7 @@ package za.ac.cput.medisnyc.service;
 import org.junit.jupiter.api.Test;
 import za.ac.cput.medisnyc.domain.Order;
 import za.ac.cput.medisnyc.domain.OrderStatus;
+import za.ac.cput.medisnyc.domain.OrderPaymentStatus;
 import za.ac.cput.medisnyc.domain.Prescription;
 import za.ac.cput.medisnyc.domain.PrescriptionProcessingStatus;
 import za.ac.cput.medisnyc.domain.PrescriptionStatus;
@@ -53,6 +54,7 @@ class PrescriptionProcessingServiceTest {
                 .setPatientId("PAT-1")
                 .setPrescriptionId("RX-1")
                 .setDispensingStatus(OrderStatus.PROCESSING)
+                .setPaymentStatus(OrderPaymentStatus.PAID)
                 .build());
         PrescriptionProcessingService service = service(prescriptions, orders);
 
@@ -101,6 +103,7 @@ class PrescriptionProcessingServiceTest {
                 .setPatientId("PAT-1")
                 .setPrescriptionId("RX-1")
                 .setDispensingStatus(OrderStatus.PROCESSING)
+                .setPaymentStatus(OrderPaymentStatus.PAID)
                 .build());
         PrescriptionProcessingService service = service(prescriptions, orders);
 
@@ -213,9 +216,14 @@ class PrescriptionProcessingServiceTest {
         });
 
         Order order = new Order.Builder().setOrderId("ORD-1").setPrescriptionId("RX-1")
-                .setPatientId("PAT-1").setDispensingStatus(OrderStatus.PROCESSING).build();
+                .setPatientId("PAT-1").setDispensingStatus(OrderStatus.PROCESSING)
+                .setTotalAmount(new java.math.BigDecimal("10.00")).build();
+        Order paidOrder = new Order.Builder().setOrderId("ORD-1").setPrescriptionId("RX-1")
+                .setPatientId("PAT-1").setDispensingStatus(OrderStatus.PROCESSING)
+                .setPaymentStatus(OrderPaymentStatus.PAID).build();
         PrescriptionOrderService orders = mock(PrescriptionOrderService.class);
-        when(orders.getByPrescriptionId("RX-1")).thenReturn(order);
+        when(orders.getByPrescriptionId("RX-1"))
+                .thenReturn(order, order, order, order, paidOrder, paidOrder);
         NotificationJpaRepository notificationRepository = mock(NotificationJpaRepository.class);
         when(notificationRepository.save(any(Notification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -236,11 +244,29 @@ class PrescriptionProcessingServiceTest {
         assertEquals(List.of(
                         "Prescription RX-1 status changed to Received.",
                         "Prescription RX-1 status changed to Preparing.",
-                        "Prescription RX-1 status changed to Ready for collection.",
+                        "Prescription RX-1 status changed to Ready for collection. Amount due: R10.00.",
                         "Prescription RX-1 status changed to Collected."),
                 notifications.getAllValues().stream().map(Notification::getMessage).toList());
         assertEquals(List.of("RX-1", "RX-1", "RX-1", "RX-1"),
                 notifications.getAllValues().stream().map(Notification::getPrescriptionId).toList());
+    }
+
+    @Test
+    void refusesCollectionWhenOrderIsUnpaid() {
+        Prescription existing = prescription(PrescriptionProcessingStatus.READY_FOR_COLLECTION);
+        PrescriptionJpaRepository prescriptions = mock(PrescriptionJpaRepository.class);
+        when(prescriptions.findByIdForUpdate("RX-1")).thenReturn(Optional.of(existing));
+        PrescriptionOrderService orders = mock(PrescriptionOrderService.class);
+        when(orders.getByPrescriptionId("RX-1")).thenReturn(new Order.Builder()
+                .setOrderId("ORD-1").setPatientId("PAT-1").setTotalAmount(new java.math.BigDecimal("12.50"))
+                .build());
+        PrescriptionProcessingService service = service(prescriptions, orders);
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> service.advanceStatus("RX-1"));
+
+        assertEquals("Order must be paid before collection. Amount due: R12.50", error.getMessage());
+        verify(prescriptions, never()).save(any(Prescription.class));
     }
 
     private PrescriptionProcessingService service(PrescriptionJpaRepository prescriptions,

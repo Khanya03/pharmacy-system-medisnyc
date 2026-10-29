@@ -7,6 +7,14 @@ export function getAllOrders() {
   return client.get("/api/orders").then((res) => res.data);
 }
 
+export function getMyOrders() {
+  return client.get("/api/orders/me").then((res) => res.data);
+}
+
+export function getOrderById(orderId) {
+  return client.get(`/api/orders/${encodeURIComponent(orderId)}`).then((res) => res.data);
+}
+
 export function getOrdersByPatient(patientId) {
   return client.get(`/api/orders/patient/${patientId}`).then((res) => res.data);
 }

@@ -18,7 +18,10 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
 import InventoryDashboard from "./pages/InventoryDashboard";
 import Login from "./pages/Login";
+import MyOrders from "./pages/MyOrders";
 import OrderList from "./pages/OrderList";
+import PaymentCheckout from "./pages/PaymentCheckout";
+import PaymentReceipt from "./pages/PaymentReceipt";
 import PatientsList from "./pages/PatientsList";
 import PrescriptionQueue from "./pages/PrescriptionQueue";
 import PrescriptionTracking from "./pages/PrescriptionTracking";
@@ -35,6 +38,7 @@ const ADMIN = ["ADMIN"];
 const PHARMACY = ["ADMIN", "PHARMACIST"];
 const CLINICAL = ["ADMIN", "DOCTOR"];
 const STAFF = ["ADMIN", "DOCTOR", "PHARMACIST"];
+const PAYING_STAFF = ["ADMIN", "PHARMACIST", "PATIENT"];
 
 function secure(page, roles) {
   return <ProtectedRoute roles={roles}>{page}</ProtectedRoute>;
@@ -52,6 +56,9 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/dashboard" element={secure(<Dashboard />)} />
+      <Route path="/my-orders" element={secure(<MyOrders />, ["PATIENT"])} />
+      <Route path="/orders/:orderId/pay" element={secure(<PaymentCheckout />, PAYING_STAFF)} />
+      <Route path="/receipts/:paymentId" element={secure(<PaymentReceipt />, ["ADMIN", "PHARMACIST", "PATIENT"])} />
       <Route path="/profile" element={secure(<Profile />)} />
       <Route path="/appointments" element={secure(<Appointments />, ["ADMIN", "DOCTOR", "PHARMACIST", "PATIENT"])} />
       <Route path="/appointments/book" element={secure(<BookAppointment />, ["PATIENT"])} />
@@ -70,6 +77,7 @@ export default function App() {
       <Route path="/admin/users" element={secure(<UserManagement />, ADMIN)} />
       <Route path="/admin/audit-log" element={secure(<AuditLog />, ADMIN)} />
       <Route path="/admin/reports" element={secure(<Reports />, ADMIN)} />
+      <Route path="/reports" element={secure(<Reports />, PHARMACY)} />
       <Route path="/admin/doctors" element={secure(<DoctorsList />, ADMIN)} />
       <Route path="/admin/doctors/add" element={secure(<AddDoctor />, ADMIN)} />
       <Route path="/admin/patients" element={secure(<PatientsList />, ADMIN)} />

@@ -7,6 +7,7 @@ package za.ac.cput.medisnyc.domain;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -22,6 +23,8 @@ public class OrderItem {
     private int quantity;
     private BigDecimal price;
     private BigDecimal subtotal;
+    @Transient
+    private String medicationName;
 
     protected OrderItem() {
     }
@@ -34,6 +37,7 @@ public class OrderItem {
         this.quantity = builder.quantity;
         this.price = builder.price;
         this.subtotal = price.multiply(BigDecimal.valueOf(quantity));
+        this.medicationName = builder.medicationName;
     }
 
     // Getters
@@ -44,6 +48,7 @@ public class OrderItem {
     public int getQuantity() { return quantity; }
     public BigDecimal getPrice() { return price; }
     public BigDecimal getSubtotal() { return subtotal; }
+    public String getMedicationName() { return medicationName; }
 
     @Override
     public boolean equals(Object o) {
@@ -77,6 +82,7 @@ public class OrderItem {
         private String inventoryId;
         private int quantity;
         private BigDecimal price;
+        private String medicationName;
 
         public Builder setOrderItemId(String orderItemId) {
             this.orderItemId = orderItemId;
@@ -105,6 +111,11 @@ public class OrderItem {
 
         public Builder setPrice(BigDecimal price) {
             this.price = price;
+            return this;
+        }
+
+        public Builder setMedicationName(String medicationName) {
+            this.medicationName = medicationName;
             return this;
         }
 

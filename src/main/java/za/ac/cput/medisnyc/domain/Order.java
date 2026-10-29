@@ -33,6 +33,10 @@ public class Order {
     private BigDecimal totalAmount;
     private String pharmacistId;
     private String notes;
+    @Enumerated(EnumType.STRING)
+    private OrderPaymentStatus paymentStatus;
+    private String paymentId;
+    private LocalDateTime paidAt;
 
     // OrderItem links back via a plain orderId string (not a JPA object reference),
     // so items are loaded separately by OrderItemRepository/OrderService rather than
@@ -51,6 +55,9 @@ public class Order {
         this.totalAmount = builder.totalAmount;
         this.pharmacistId = builder.pharmacistId;
         this.notes = builder.notes;
+        this.paymentStatus = builder.paymentStatus;
+        this.paymentId = builder.paymentId;
+        this.paidAt = builder.paidAt;
         this.items = builder.items != null ?
                 new ArrayList<>(builder.items) : new ArrayList<>();
     }
@@ -64,9 +71,14 @@ public class Order {
     public BigDecimal getTotalAmount() { return totalAmount; }
     public String getPharmacistId() { return pharmacistId; }
     public String getNotes() { return notes; }
+    public OrderPaymentStatus getPaymentStatus() {
+        return paymentStatus == null ? OrderPaymentStatus.UNPAID : paymentStatus;
+    }
+    public String getPaymentId() { return paymentId; }
+    public LocalDateTime getPaidAt() { return paidAt; }
 
     public List<OrderItem> getItems() {
-        return Collections.unmodifiableList(items);
+        return items == null ? List.of() : Collections.unmodifiableList(items);
     }
 
     public boolean canBeCancelled() {
@@ -116,6 +128,9 @@ public class Order {
         private BigDecimal totalAmount;
         private String pharmacistId;
         private String notes;
+        private OrderPaymentStatus paymentStatus;
+        private String paymentId;
+        private LocalDateTime paidAt;
         private List<OrderItem> items = new ArrayList<>();
 
         public Builder setOrderId(String orderId) {
@@ -155,6 +170,21 @@ public class Order {
 
         public Builder setNotes(String notes) {
             this.notes = notes;
+            return this;
+        }
+
+        public Builder setPaymentStatus(OrderPaymentStatus paymentStatus) {
+            this.paymentStatus = paymentStatus;
+            return this;
+        }
+
+        public Builder setPaymentId(String paymentId) {
+            this.paymentId = paymentId;
+            return this;
+        }
+
+        public Builder setPaidAt(LocalDateTime paidAt) {
+            this.paidAt = paidAt;
             return this;
         }
 
