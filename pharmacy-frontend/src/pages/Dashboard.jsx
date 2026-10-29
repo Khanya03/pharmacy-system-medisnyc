@@ -18,7 +18,8 @@ function tilesForRole(role) {
     if (role === "PATIENT") {
         tiles.push(
             { to: "/appointments", title: "Your appointments", body: "Book a new appointment, or view and cancel upcoming ones." },
-            { to: "/prescriptions/track", title: "Track prescriptions", body: "Follow your prescriptions from pending to ready for collection." }
+            { to: "/prescriptions/track", title: "Track prescriptions", body: "Follow your prescriptions from pending to ready for collection." },
+            { to: "/my-orders", title: "My orders & payments", body: "Pay for an order, review payment status, and view receipts." },
         );
     }
 
@@ -42,6 +43,8 @@ function tilesForRole(role) {
             { to: "/inventory", title: "Inventory", body: "Manage the medicine catalogue and stock levels." },
             { to: "/prescriptions/queue", title: "Prescription queue", body: "Move prescriptions through Pending → Collected." },
             { to: "/prescriptions/ready", title: "Ready for collection", body: "Hand off prescriptions waiting at the counter." },
+            { to: "/orders", title: "Orders & payments", body: "Charge orders, print receipts, and process refunds." },
+            { to: "/reports", title: "Reports", body: "Review revenue, payment activity, and export reports." },
             { to: "/admin", title: "Admin dashboard", body: "System statistics, user management, reports and audit log." }
         );
     }

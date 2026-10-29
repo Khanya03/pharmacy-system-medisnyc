@@ -51,6 +51,14 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getAll());
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<List<Order>> getMine(@AuthenticationPrincipal User user) {
+        if (user.getLinkedProfileId() == null) {
+            throw new AccessDeniedException("Patient account has no linked patient record");
+        }
+        return ResponseEntity.ok(orderService.getByPatient(user.getLinkedProfileId()));
+    }
+
     @GetMapping("/{orderId}")
     public ResponseEntity<Order> getById(@PathVariable String orderId,
                                          @AuthenticationPrincipal User user,

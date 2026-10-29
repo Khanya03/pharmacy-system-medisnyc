@@ -10,6 +10,7 @@ import za.ac.cput.medisnyc.domain.Inventory;
 import za.ac.cput.medisnyc.domain.Order;
 import za.ac.cput.medisnyc.domain.OrderItem;
 import za.ac.cput.medisnyc.domain.OrderStatus;
+import za.ac.cput.medisnyc.domain.OrderPaymentStatus;
 import za.ac.cput.medisnyc.domain.Medication;
 import za.ac.cput.medisnyc.domain.Prescription;
 import za.ac.cput.medisnyc.domain.PrescriptionItem;
@@ -39,18 +40,30 @@ public class OrderService implements PrescriptionOrderService {
     private final InventoryJpaRepository inventoryRepository;
     private final MedicationJpaRepository medicationRepository;
     private final AuditLogService auditLogService;
+    private final PaymentService paymentService;
 
     @Autowired
     public OrderService(OrderJpaRepository orderRepository,
                         OrderItemJpaRepository orderItemRepository,
                         InventoryJpaRepository inventoryRepository,
                         MedicationJpaRepository medicationRepository,
-                        AuditLogService auditLogService) {
+                        AuditLogService auditLogService,
+                        PaymentService paymentService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.inventoryRepository = inventoryRepository;
         this.medicationRepository = medicationRepository;
         this.auditLogService = auditLogService;
+        this.paymentService = paymentService;
+    }
+
+    public OrderService(OrderJpaRepository orderRepository,
+                        OrderItemJpaRepository orderItemRepository,
+                        InventoryJpaRepository inventoryRepository,
+                        MedicationJpaRepository medicationRepository,
+                        AuditLogService auditLogService) {
+        this(orderRepository, orderItemRepository, inventoryRepository, medicationRepository,
+                auditLogService, null);
     }
 
     public List<Order> getAll() {
@@ -128,7 +141,18 @@ public class OrderService implements PrescriptionOrderService {
     private List<Order> attachItems(List<Order> orders) {
         List<Order> result = new ArrayList<>();
         for (Order order : orders) {
-            List<OrderItem> items = orderItemRepository.findByOrderId(order.getOrderId());
+            List<OrderItem> items = orderItemRepository.findByOrderId(order.getOrderId()).stream()
+                    .map(item -> new OrderItem.Builder()
+                            .setOrderItemId(item.getOrderItemId())
+                            .setOrderId(item.getOrderId())
+                            .setMedicationId(item.getMedicationId())
+                            .setInventoryId(item.getInventoryId())
+                            .setQuantity(item.getQuantity())
+                            .setPrice(item.getPrice())
+                            .setMedicationName(medicationRepository.findById(item.getMedicationId())
+                                    .map(Medication::getMedicationName).orElse(item.getMedicationId()))
+                            .build())
+                    .toList();
             result.add(new Order.Builder()
                     .setOrderId(order.getOrderId())
                     .setPatientId(order.getPatientId())
@@ -138,6 +162,9 @@ public class OrderService implements PrescriptionOrderService {
                     .setTotalAmount(order.getTotalAmount())
                     .setPharmacistId(order.getPharmacistId())
                     .setNotes(order.getNotes())
+                    .setPaymentStatus(order.getPaymentStatus())
+                    .setPaymentId(order.getPaymentId())
+                    .setPaidAt(order.getPaidAt())
                     .setItems(items)
                     .build());
         }
@@ -219,10 +246,14 @@ public class OrderService implements PrescriptionOrderService {
 
     @Transactional
     public Order updateStatus(String orderId, OrderStatus newStatus, String actingUsername) {
-        Order existing = orderRepository.findById(orderId)
+        Order existing = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
 
         OrderStatus current = existing.getDispensingStatus();
+        if ((newStatus == OrderStatus.DISPENSED || newStatus == OrderStatus.COMPLETED)
+                && existing.getPaymentStatus() != OrderPaymentStatus.PAID) {
+            throw new IllegalStateException("Order must be paid before dispensing");
+        }
         boolean validTransition = switch (current) {
             case PENDING -> newStatus == OrderStatus.PROCESSING || newStatus == OrderStatus.CANCELLED;
             case PROCESSING -> newStatus == OrderStatus.DISPENSED || newStatus == OrderStatus.CANCELLED;
@@ -252,6 +283,9 @@ public class OrderService implements PrescriptionOrderService {
                         .build();
                 inventoryRepository.save(restocked);
             }
+            if (existing.getPaymentStatus() == OrderPaymentStatus.PAID && paymentService != null) {
+                paymentService.refundForCancelledOrder(orderId, actingUsername);
+            }
         }
 
         Order updated = new Order.Builder()
@@ -263,6 +297,11 @@ public class OrderService implements PrescriptionOrderService {
                 .setTotalAmount(existing.getTotalAmount())
                 .setPharmacistId(existing.getPharmacistId())
                 .setNotes(existing.getNotes())
+                .setPaymentStatus(newStatus == OrderStatus.CANCELLED
+                        && existing.getPaymentStatus() == OrderPaymentStatus.PAID
+                        ? OrderPaymentStatus.REFUNDED : existing.getPaymentStatus())
+                .setPaymentId(existing.getPaymentId())
+                .setPaidAt(existing.getPaidAt())
                 .setItems(items)
                 .build();
         Order saved = orderRepository.save(updated);

@@ -5,6 +5,7 @@ import org.mockito.ArgumentCaptor;
 import za.ac.cput.medisnyc.domain.Inventory;
 import za.ac.cput.medisnyc.domain.Order;
 import za.ac.cput.medisnyc.domain.OrderStatus;
+import za.ac.cput.medisnyc.domain.OrderPaymentStatus;
 import za.ac.cput.medisnyc.domain.OrderItem;
 import za.ac.cput.medisnyc.domain.Prescription;
 import za.ac.cput.medisnyc.domain.PrescriptionItem;
@@ -27,11 +28,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
 
 class OrderServicePrescriptionTest {
 
@@ -53,6 +56,8 @@ class OrderServicePrescriptionTest {
             return order;
         });
         when(orders.findById(anyString())).thenAnswer(invocation -> Optional.ofNullable(savedOrder.get()));
+        when(orders.findByIdForUpdate(anyString()))
+                .thenAnswer(invocation -> Optional.ofNullable(savedOrder.get()));
         OrderItemJpaRepository orderItems = mock(OrderItemJpaRepository.class);
         when(orderItems.findByOrderId(anyString())).thenReturn(List.of());
         OrderService service = service(orders, orderItems, inventory);
@@ -100,6 +105,7 @@ class OrderServicePrescriptionTest {
         OrderJpaRepository orders = mock(OrderJpaRepository.class);
         when(orders.findFirstByPrescriptionId("RX-1")).thenReturn(Optional.of(existing));
         when(orders.findById("ORD-1")).thenReturn(Optional.of(existing));
+        when(orders.findByIdForUpdate("ORD-1")).thenReturn(Optional.of(existing));
         OrderItemJpaRepository items = mock(OrderItemJpaRepository.class);
         when(items.findByOrderId("ORD-1")).thenReturn(List.of());
         InventoryJpaRepository inventory = mock(InventoryJpaRepository.class);
@@ -112,6 +118,49 @@ class OrderServicePrescriptionTest {
         verify(orders, never()).save(any(Order.class));
         verify(inventory, never()).findByMedicationIdAndExpiryDateGreaterThanEqualOrderByExpiryDateAsc(
                 anyString(), any());
+    }
+
+    @Test
+    void cancellingPaidOrderRestocksAndRefunds() {
+        Inventory batch = batch("INV-1", 2, LocalDate.now().plusDays(10));
+        Order existing = new Order.Builder().setOrderId("ORD-1").setPatientId("PAT-1")
+                .setDispensingStatus(OrderStatus.PROCESSING).setTotalAmount(new BigDecimal("5.00"))
+                .setPaymentStatus(OrderPaymentStatus.PAID).setPaymentId("PAY-1").build();
+        OrderItem item = new OrderItem.Builder().setOrderItemId("ITEM-1").setOrderId("ORD-1")
+                .setMedicationId("MED-1").setInventoryId("INV-1").setQuantity(3)
+                .setPrice(new BigDecimal("2.50")).build();
+        OrderJpaRepository orders = mock(OrderJpaRepository.class);
+        when(orders.findById("ORD-1")).thenReturn(Optional.of(existing));
+        when(orders.findByIdForUpdate("ORD-1")).thenReturn(Optional.of(existing));
+        when(orders.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        OrderItemJpaRepository items = mock(OrderItemJpaRepository.class);
+        when(items.findByOrderId("ORD-1")).thenReturn(List.of(item));
+        InventoryJpaRepository inventory = mock(InventoryJpaRepository.class);
+        when(inventory.findByIdForUpdate("INV-1")).thenReturn(Optional.of(batch));
+        PaymentService payments = mock(PaymentService.class);
+        OrderService service = new OrderService(orders, items, inventory,
+                mock(MedicationJpaRepository.class), mock(AuditLogService.class), payments);
+
+        service.updateStatus("ORD-1", OrderStatus.CANCELLED, "staff");
+
+        verify(inventory).save(argThat(saved -> saved.getStockLevel() == 5));
+        verify(payments).refundForCancelledOrder("ORD-1", "staff");
+    }
+
+    @Test
+    void blocksDispensingUnpaidOrder() {
+        Order existing = new Order.Builder().setOrderId("ORD-1").setPatientId("PAT-1")
+                .setDispensingStatus(OrderStatus.PROCESSING).build();
+        OrderJpaRepository orders = mock(OrderJpaRepository.class);
+        when(orders.findByIdForUpdate("ORD-1")).thenReturn(Optional.of(existing));
+        OrderService service = new OrderService(orders, mock(OrderItemJpaRepository.class),
+                mock(InventoryJpaRepository.class), mock(MedicationJpaRepository.class),
+                mock(AuditLogService.class));
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> service.updateStatus("ORD-1", OrderStatus.DISPENSED, "staff"));
+
+        assertEquals("Order must be paid before dispensing", error.getMessage());
     }
 
     private OrderService service(OrderJpaRepository orders, OrderItemJpaRepository items,

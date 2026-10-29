@@ -6,10 +6,10 @@ package za.ac.cput.medisnyc.exception;
    Author: Lisakhanya Mpahla
 */
 
-import za.ac.cput.medisnyc.dto.ApiResponse;
 import za.ac.cput.medisnyc.exception.InsufficientStockException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import za.ac.cput.medisnyc.exception.ResourceNotFoundException;
+import za.ac.cput.medisnyc.exception.PaymentException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -38,8 +38,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse> handleIllegalArgument(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(false, ex.getMessage()));
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
@@ -48,8 +48,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse> handleBadCredentials(BadCredentialsException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse(false, ex.getMessage()));
+    public ResponseEntity<Map<String, String>> handleBadCredentials(BadCredentialsException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -60,20 +60,29 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new LinkedHashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(err -> errors.put(err.getField(), err.getDefaultMessage()));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst().map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .orElse("Request validation failed");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", message));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse> handleUnreadableRequest(HttpMessageNotReadableException ex) {
+    public ResponseEntity<Map<String, String>> handleUnreadableRequest(HttpMessageNotReadableException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ApiResponse(false, "Request body contains invalid or missing values"));
+                .body(Map.of("message", "Request body contains invalid or missing values"));
+    }
+
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<Map<String, String>> handlePaymentException(PaymentException ex) {
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("message", ex.getMessage());
+        if (ex.getCode() != null) body.put("code", ex.getCode());
+        return ResponseEntity.status(ex.getStatus()).body(body);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse> handleGeneric(Exception ex) {
+    public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiResponse(false, "An unexpected error occurred: " + ex.getMessage()));
+                .body(Map.of("message", "An unexpected error occurred"));
     }
 }

@@ -93,6 +93,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "PHARMACIST")
                         .requestMatchers("/api/notifications/**").hasRole("PATIENT")
+                        .requestMatchers(HttpMethod.POST, "/api/payments/*/refund").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/payments/card")
+                        .hasAnyRole("ADMIN", "PHARMACIST", "PATIENT")
+                        .requestMatchers(HttpMethod.GET, "/api/payments/my").hasRole("PATIENT")
+                        .requestMatchers(HttpMethod.GET, "/api/payments/order/**",
+                                "/api/payments/*/receipt")
+                        .hasAnyRole("ADMIN", "PHARMACIST", "PATIENT")
+                        .requestMatchers(HttpMethod.GET, "/api/payments")
+                        .hasAnyRole("ADMIN", "PHARMACIST")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/me").hasRole("PATIENT")
 
                         // Patient records and orders are restricted by both role and owner checks.
                         .requestMatchers(HttpMethod.GET, "/api/patients").hasAnyRole("ADMIN", "DOCTOR")

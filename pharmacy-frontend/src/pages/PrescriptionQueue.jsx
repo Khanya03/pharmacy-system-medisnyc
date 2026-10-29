@@ -3,9 +3,12 @@ import AppShell from "../components/AppShell";
 import { Alert } from "../components/Field";
 import StatusBadge from "../components/StatusBadge";
 import * as processingApi from "../api/prescriptionProcessingApi";
+import * as orderApi from "../api/orderApi";
 import { parseApiError } from "../utils/parseApiError";
+import { Link } from "react-router-dom";
 import "./Appointments.css";
 import "./Prescriptions.css";
+import "./Payments.css";
 
 const POLL_INTERVAL_MS = 10000;
 const STATUSES = ["PENDING", "RECEIVED", "PREPARING", "READY_FOR_COLLECTION", "COLLECTED"];
@@ -41,7 +44,12 @@ export default function PrescriptionQueue() {
     const load = useCallback(async () => {
         try {
             const items = await processingApi.getQueue();
-            setQueue(items);
+            const enriched = await Promise.all(items.map(async (prescription) => {
+                if (!prescription.linkedOrderId) return prescription;
+                const order = await orderApi.getOrderById(prescription.linkedOrderId);
+                return { ...prescription, linkedOrder: order };
+            }));
+            setQueue(enriched);
             setError("");
         } catch (err) {
             setError(parseApiError(err).message);
@@ -172,6 +180,9 @@ export default function PrescriptionQueue() {
                         const status = processingStatus(prescription);
                         const rowError = rowErrors[prescription.prescriptionId];
                         const inactive = prescription.status !== "ACTIVE";
+                        const paymentDue = prescription.linkedOrder
+                            && (prescription.linkedOrder.paymentStatus || "UNPAID") !== "PAID";
+                        const cannotCollect = status === "READY_FOR_COLLECTION" && paymentDue;
                         return (
                             <div className="appts-row rx-queue-row" key={prescription.prescriptionId}>
                                 <div className="appts-row-main">
@@ -195,18 +206,29 @@ export default function PrescriptionQueue() {
                                     {prescription.linkedOrderId && (
                                         <div className="appts-row-parties">Order: {prescription.linkedOrderId}</div>
                                     )}
+                                    {paymentDue && (
+                                        <div className="rx-queue-payment-due">
+                                            Payment due R{Number(prescription.linkedOrder.totalAmount || 0).toFixed(2)}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="appts-row-side rx-queue-actions">
                                     <StatusBadge status={status} />
                                     <button
                                         className="rx-queue-advance-btn"
                                         onClick={() => handleAdvance(prescription.prescriptionId)}
-                                        disabled={Boolean(advancingId) || inactive || !NEXT_LABEL[status]}
+                                        disabled={Boolean(advancingId) || inactive || !NEXT_LABEL[status] || cannotCollect}
                                     >
                                         {advancingId === prescription.prescriptionId
                                             ? "Updating…"
                                             : NEXT_LABEL[status] || "No further action"}
                                     </button>
+                                    {paymentDue && (
+                                        <Link className="rx-queue-advance-btn"
+                                            to={`/orders/${encodeURIComponent(prescription.linkedOrder.orderId)}/pay`}>
+                                            Take payment
+                                        </Link>
+                                    )}
                                     {rowError && (
                                         <div className="rx-queue-row-error" role="alert">
                                             <div>{rowError.message}</div>

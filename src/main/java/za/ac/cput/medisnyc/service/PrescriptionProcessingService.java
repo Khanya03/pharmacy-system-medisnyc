@@ -12,6 +12,7 @@ import za.ac.cput.medisnyc.domain.PrescriptionProcessingStatus;
 import za.ac.cput.medisnyc.domain.PrescriptionStatus;
 import za.ac.cput.medisnyc.domain.Order;
 import za.ac.cput.medisnyc.domain.OrderStatus;
+import za.ac.cput.medisnyc.domain.OrderPaymentStatus;
 import za.ac.cput.medisnyc.domain.Doctor;
 import za.ac.cput.medisnyc.domain.Medication;
 import za.ac.cput.medisnyc.domain.Patient;
@@ -32,6 +33,8 @@ import java.util.Map;
 import java.util.Comparator;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 public class PrescriptionProcessingService {
@@ -129,6 +132,21 @@ public class PrescriptionProcessingService {
             throw new IllegalStateException("Prescription is already at its final status: " + current);
         }
 
+        Order linkedOrder = null;
+        if (next == PrescriptionProcessingStatus.COLLECTED
+                || next == PrescriptionProcessingStatus.READY_FOR_COLLECTION) {
+            linkedOrder = orderService.getByPrescriptionId(prescriptionId);
+        }
+        if (next == PrescriptionProcessingStatus.COLLECTED) {
+            if (linkedOrder == null) {
+                throw new IllegalStateException("No order is linked to prescription " + prescriptionId);
+            }
+            if (linkedOrder.getPaymentStatus() != OrderPaymentStatus.PAID) {
+                throw new IllegalStateException("Order must be paid before collection. Amount due: R"
+                        + amountDue(linkedOrder));
+            }
+        }
+
         if (next == PrescriptionProcessingStatus.PREPARING) {
             orderService.createForPrescription(existing,
                     prescriptionItemRepository.findByPrescriptionId(prescriptionId));
@@ -159,17 +177,17 @@ public class PrescriptionProcessingService {
                     .setPatientId(saved.getPatientId())
                     .build();
             collectionRepository.save(collection);
-            var order = orderService.getByPrescriptionId(saved.getPrescriptionId());
-            if (order == null) {
-                throw new IllegalStateException("No order is linked to prescription " + saved.getPrescriptionId());
-            }
-            orderService.updateStatus(order.getOrderId(), OrderStatus.DISPENSED, "SYSTEM");
-            orderService.updateStatus(order.getOrderId(), OrderStatus.COMPLETED, "SYSTEM");
+            orderService.updateStatus(linkedOrder.getOrderId(), OrderStatus.DISPENSED, "SYSTEM");
+            orderService.updateStatus(linkedOrder.getOrderId(), OrderStatus.COMPLETED, "SYSTEM");
         }
 
+        String notificationMessage = "Prescription " + saved.getPrescriptionId() + " status changed to "
+                + statusLabel(next) + ".";
+        if (next == PrescriptionProcessingStatus.READY_FOR_COLLECTION && linkedOrder != null) {
+            notificationMessage += " Amount due: R" + amountDue(linkedOrder) + ".";
+        }
         notificationService.notify(saved.getPatientId(), saved.getPrescriptionId(),
-                "Prescription " + saved.getPrescriptionId() + " status changed to "
-                        + statusLabel(next) + ".");
+                notificationMessage);
         return withLinkedOrder(saved, orderService.getByPrescriptionId(saved.getPrescriptionId()));
     }
 
@@ -277,5 +295,11 @@ public class PrescriptionProcessingService {
         String name = ((firstName == null ? "" : firstName) + " "
                 + (lastName == null ? "" : lastName)).trim();
         return name.isEmpty() ? fallback : name;
+    }
+
+    private String amountDue(Order order) {
+        BigDecimal due = order.getPaymentStatus() == OrderPaymentStatus.PAID
+                ? BigDecimal.ZERO : order.getTotalAmount();
+        return (due == null ? BigDecimal.ZERO : due).setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 }

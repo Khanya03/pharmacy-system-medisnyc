@@ -44,6 +44,13 @@
     gap: 16px;
 }
 
+@media (max-width: 700px) {
+    .shell-nav { padding: 12px 16px; }
+    .shell-nav-right { gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
+    .shell-nav-right .shell-link { font-size: 12px; }
+    .shell-content { padding: 26px 16px; }
+}
+
 .shell-role-badge {
     font-family: var(--font-mono);
     font-size: 11px;

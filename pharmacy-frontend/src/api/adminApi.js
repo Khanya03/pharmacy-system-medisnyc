@@ -51,6 +51,8 @@ export function getDashboardStatistics() {
     return client.get("/api/reports/dashboard-statistics").then((res) => res.data);
 }
 
-export function getRevenueReport() {
-    return client.get("/api/reports/revenue").then((res) => res.data);
+export function getRevenueReport({ from, to } = {}) {
+    return client.get("/api/reports/revenue", {
+        params: { from: from || undefined, to: to || undefined },
+    }).then((res) => res.data);
 }
