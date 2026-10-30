@@ -116,7 +116,7 @@ Open **http://localhost:5173**. The app talks to the backend at the URL in `VITE
 | `4000 0000 0000 9995` | Insufficient funds |
 | `4000 0000 0000 0069` | Expired card |
 
-Any 12–19 digit number is approved in demo mode. Use a future expiry and a 3- or 4-digit CVV. The numbers below still force a decline so you can show error handling. The backend never stores the full card number or CVV.
+Any 12–19 digit number is approved in demo mode. There is no funds check — the order amount is paid as-is. Use a future expiry and a 3- or 4-digit CVV. The backend never stores the full card number or CVV.
 
 ---
 

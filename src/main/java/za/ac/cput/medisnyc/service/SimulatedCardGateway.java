@@ -39,22 +39,7 @@ public class SimulatedCardGateway implements PaymentGateway {
             return failed(brand, last4, reference, "INVALID_CARD", "CVV must be 3 or 4 digits");
         }
 
-        if ("demo".equalsIgnoreCase(mode)) {
-            String code = switch (number) {
-                case "4000000000000002" -> "CARD_DECLINED";
-                case "4000000000009995" -> "INSUFFICIENT_FUNDS";
-                case "4000000000000069" -> "EXPIRED_CARD";
-                default -> null;
-            };
-            if (code != null) {
-                String reason = switch (code) {
-                    case "CARD_DECLINED" -> "Card was declined";
-                    case "INSUFFICIENT_FUNDS" -> "Insufficient funds";
-                    default -> "Card has expired";
-                };
-                return failed(brand, last4, reference, code, reason);
-            }
-        }
+        // Demo mode always approves. There is no funds check; the order amount is charged as-is.
         return new GatewayResult(true, brand, last4, reference, null, null);
     }
 

@@ -30,13 +30,12 @@ class SimulatedCardGatewayTest {
     }
 
     @Test
-    void eachDemoTestCardHasItsContractOutcome() {
+    void demoApprovesEveryCardIncludingFormerDeclineNumbers() {
         assertTrue(gateway.charge(request("4242424242424242")).approved());
         assertTrue(gateway.charge(request("5555555555554444")).approved());
-        assertEquals("CARD_DECLINED", gateway.charge(request("4000000000000002")).failureCode());
-        assertEquals("INSUFFICIENT_FUNDS",
-                gateway.charge(request("4000000000009995")).failureCode());
-        assertEquals("EXPIRED_CARD", gateway.charge(request("4000000000000069")).failureCode());
+        assertTrue(gateway.charge(request("4000000000000002")).approved());
+        assertTrue(gateway.charge(request("4000000000009995")).approved());
+        assertTrue(gateway.charge(request("123456789012")).approved());
     }
 
     @Test
