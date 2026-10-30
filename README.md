@@ -162,6 +162,13 @@ ALTER TABLE audit_logs MODIFY COLUMN details TEXT;
 
 ---
 
+
+## Payments, receipts, and inventory
+
+- Card payments are stored in the `payments` table and linked to the order (`paymentStatus`, `paymentId`, `paidAt`). Reports read from those payment records, so paid orders appear in revenue.
+- On a successful payment the patient receives a notification that includes the receipt number, amount, order id, date, card brand, and last four digits.
+- All inventory batches are set to expire in 2028. Existing rows are updated on startup; newly seeded batches use 2028-12-31 (first batch) and 2028-06-30 (second batch).
+
 ## Notes
 
 - Legacy orders created before payment tracking have a null payment status and are treated as unpaid. They are excluded from revenue until paid.

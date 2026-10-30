@@ -143,9 +143,11 @@ public class MedicationDataSeeder implements CommandLineRunner {
                 continue;
             }
 
-            int firstExpiryDays = sample.expiryInDays() == 20 ? 20 : sample.expiryInDays();
+            // Demo stock expires in 2028 so the seeded catalogue stays usable.
+            LocalDate firstExpiry = LocalDate.of(2028, 12, 31);
+            LocalDate secondExpiry = LocalDate.of(2028, 6, 30);
             int firstBatchResult = receiveBatchSafely(medication.getMedicationId(), baseBatchNumber + "-A",
-                    sample.firstBatchStock(), sample, today.plusDays(firstExpiryDays), today);
+                    sample.firstBatchStock(), sample, firstExpiry, today);
             if (firstBatchResult < 0) {
                 batchesFailed++;
             } else {
@@ -153,7 +155,7 @@ public class MedicationDataSeeder implements CommandLineRunner {
             }
             if (sample.secondBatchStock() > 0) {
                 int secondBatchResult = receiveBatchSafely(medication.getMedicationId(), baseBatchNumber + "-B",
-                        sample.secondBatchStock(), sample, today.plusDays(firstExpiryDays + 180), today);
+                        sample.secondBatchStock(), sample, secondExpiry, today);
                 if (secondBatchResult < 0) {
                     batchesFailed++;
                 } else {

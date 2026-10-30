@@ -131,13 +131,25 @@ public class PaymentService {
 
             orderRepository.save(copyOrder(order, OrderPaymentStatus.PAID, paymentId, now));
             notificationService.notify(order.getPatientId(), order.getPrescriptionId(),
-                    "Payment of R" + order.getTotalAmount() + " received, receipt " + receiptNumber);
+                    receiptNotification(payment, order));
             auditLogService.log(processedBy, "PAYMENT_RECEIVED", paymentId,
                     "Payment received for order " + order.getOrderId() + ", amount R" + order.getTotalAmount());
             return toResponse(payment);
         } finally {
             request.clearCardData();
         }
+    }
+
+
+    private String receiptNotification(Payment payment, Order order) {
+        String when = payment.getPaidAt() == null ? "" : payment.getPaidAt().toLocalDate().toString();
+        String card = (payment.getCardBrand() == null ? "Card" : payment.getCardBrand())
+                + " ending " + (payment.getCardLast4() == null ? "****" : payment.getCardLast4());
+        return "Receipt " + payment.getReceiptNumber()
+                + ": Payment of R" + order.getTotalAmount()
+                + " received for order " + order.getOrderId()
+                + (when.isBlank() ? "" : " on " + when)
+                + ". " + card + ". Status: PAID.";
     }
 
     @Transactional
