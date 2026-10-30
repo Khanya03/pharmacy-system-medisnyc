@@ -1,6 +1,5 @@
 import client from "./client";
 
-// Module 1 — Authentication & User Management
 // Maps 1:1 onto AuthController (/api/auth) and ProfileController (/api/profile).
 
 export function register({ username, email, password, firstName, lastName, role, phoneNumber, dateOfBirth }) {

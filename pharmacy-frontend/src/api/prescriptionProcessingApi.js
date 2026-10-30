@@ -1,6 +1,5 @@
 import client from "./client";
 
-// Module 5 — Prescription Processing Module.
 // Maps onto PrescriptionProcessingController (/api/prescription-processing).
 
 export function getQueue() {

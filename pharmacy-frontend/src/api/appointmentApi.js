@@ -1,6 +1,5 @@
 import client from "./client";
 
-// Module 2 — Patient & Appointment Module.
 // Maps 1:1 onto AppointmentController (/api/appointments).
 
 export function bookAppointment({ patientId, doctorId, appointmentDate, reason, notes }) {

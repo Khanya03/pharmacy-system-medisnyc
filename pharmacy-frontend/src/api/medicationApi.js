@@ -1,7 +1,6 @@
 
 import client from "./client";
 
-// Module 4 — Pharmacy Inventory Module (medicine catalogue half).
 // Maps onto MedicationController (/api/medications).
 
 export function getAllMedications() {

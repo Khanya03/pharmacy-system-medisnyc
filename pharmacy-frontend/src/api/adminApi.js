@@ -1,6 +1,5 @@
 import client from "./client";
 
-// Module 6 — Reports & Administration. Maps onto AdminController (/api/admin) and
 // ReportController (/api/reports).
 
 export function getAllUsers() {

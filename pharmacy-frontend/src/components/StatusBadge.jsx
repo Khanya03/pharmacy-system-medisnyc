@@ -7,7 +7,6 @@ const STATUS_STYLES = {
   CONFIRMED: "status-pine",
   COMPLETED: "status-sage",
   CANCELLED: "status-error",
-  // Prescription processing statuses (Module 5 flow)
   PENDING: "status-amber",
   RECEIVED: "status-sage",
   PREPARING: "status-amber",

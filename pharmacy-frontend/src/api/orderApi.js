@@ -1,7 +1,6 @@
 
 import client from "./client";
 
-// Module 4/6 — Order fulfilment. Maps onto OrderController (/api/orders).
 
 export function getAllOrders() {
   return client.get("/api/orders").then((res) => res.data);

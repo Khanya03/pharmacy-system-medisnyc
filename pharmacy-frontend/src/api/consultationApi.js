@@ -1,6 +1,5 @@
 import client from "./client";
 
-// Module 3 — Doctor Consultation & Prescription Module.
 // Maps onto ConsultationController (/api/medical-records, /api/consultations).
 
 export function createMedicalRecord({ patientId, appointmentId, diagnosis, consultationNotes, treatmentPlan }) {
