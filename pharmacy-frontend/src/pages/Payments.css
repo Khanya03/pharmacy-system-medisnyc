@@ -86,3 +86,108 @@
   .payment-receipt-paper { border: 0; }
   .no-print { display: none !important; }
 }
+
+.demo-card-scene {
+  perspective: 1200px;
+  margin: 4px 0 18px;
+}
+.demo-card {
+  position: relative;
+  height: 188px;
+  transform-style: preserve-3d;
+  transition: transform .55s ease;
+}
+.demo-card-scene.is-flipped .demo-card { transform: rotateY(180deg); }
+.demo-card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  overflow: hidden;
+  color: #f7f3ea;
+  box-shadow: 0 16px 34px rgba(20, 42, 32, .22);
+}
+.demo-card-front {
+  padding: 18px 20px;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(255,255,255,.22), transparent 28%),
+    linear-gradient(135deg, #16352a 0%, #1f6b4a 48%, #0e2a22 100%);
+}
+.demo-card-top, .demo-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.demo-card-chip {
+  width: 42px;
+  height: 32px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #f3d48a, #c9a14a 45%, #efe0b2);
+  box-shadow: inset 0 0 0 1px rgba(90, 60, 10, .25);
+}
+.demo-card-brand {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 20px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.demo-card-number {
+  margin: 28px 0 22px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 22px;
+  letter-spacing: .12em;
+}
+.demo-card-bottom small {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .72;
+}
+.demo-card-bottom span {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.demo-card-watermark {
+  position: absolute;
+  right: -8px;
+  bottom: -18px;
+  font-size: 72px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  opacity: .08;
+}
+.demo-card-back {
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, #10261d, #1a4a36);
+}
+.demo-card-stripe {
+  height: 42px;
+  margin-top: 22px;
+  background: #0b1410;
+}
+.demo-card-cvv-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 18px 0;
+  padding: 8px 12px;
+  background: #efe8dc;
+  color: #1a2a22;
+  border-radius: 6px;
+}
+.demo-card-back p {
+  margin: 18px 18px 0;
+  font-size: 12px;
+  opacity: .75;
+}
+@media (max-width: 720px) {
+  .demo-card { height: 176px; }
+  .demo-card-number { font-size: 18px; }
+}

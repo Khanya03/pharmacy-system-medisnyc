@@ -189,12 +189,58 @@ export function ReceiptItems({ receipt }) {
   );
 }
 
+
+function displayCardNumber(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 16).split("");
+  const slots = Array.from({ length: 16 }, (_, index) => digits[index] || "•");
+  return [0, 4, 8, 12].map((start) => slots.slice(start, start + 4).join("")).join(" ");
+}
+
+function DemoCard({ name, number, expiry, brand, flipped }) {
+  const shownName = name.trim() || "YOUR NAME";
+  const shownExpiry = expiry || "MM/YY";
+  const shownBrand = brand || "DEMO";
+  return (
+    <div className={`demo-card-scene${flipped ? " is-flipped" : ""}`} aria-hidden="true">
+      <div className="demo-card">
+        <div className="demo-card-face demo-card-front">
+          <div className="demo-card-top">
+            <span className="demo-card-chip" />
+            <span className="demo-card-brand">{shownBrand}</span>
+          </div>
+          <div className="demo-card-number">{displayCardNumber(number)}</div>
+          <div className="demo-card-bottom">
+            <span>
+              <small>Cardholder</small>
+              {shownName}
+            </span>
+            <span>
+              <small>Expires</small>
+              {shownExpiry}
+            </span>
+          </div>
+          <span className="demo-card-watermark">DEMO</span>
+        </div>
+        <div className="demo-card-face demo-card-back">
+          <div className="demo-card-stripe" />
+          <div className="demo-card-cvv-row">
+            <span>CVV</span>
+            <strong>•••</strong>
+          </div>
+          <p>MediSync demo card · no real charge</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CheckoutForm({ state, onClose }) {
   const {
     order, receipt, loading, loadError, busy, error, showCards, setShowCards,
     cardholderName, setCardholderName, cardNumber, setCardNumber, expiry, setExpiry,
     cvv, setCvv, fieldErrors, cardBrand, submit, fillCard,
   } = state;
+  const [cvvFocus, setCvvFocus] = useState(false);
   if (receipt) return <ReceiptView receipt={receipt} onBack={onClose} />;
   if (loading) return <p className="appts-loading">Loading order…</p>;
   if (loadError) return <Alert>{loadError}</Alert>;
@@ -237,6 +283,13 @@ function CheckoutForm({ state, onClose }) {
             ))}
           </div>}
         </div>
+        <DemoCard
+          name={cardholderName}
+          number={cardNumber}
+          expiry={expiry}
+          brand={cardBrand}
+          flipped={cvvFocus}
+        />
         <Alert>{error}</Alert>
         <form onSubmit={submit} noValidate>
           <Field id="cardholderName" label="Cardholder name" value={cardholderName}
@@ -255,6 +308,8 @@ function CheckoutForm({ state, onClose }) {
               }} error={fieldErrors.expiry} />
             <Field id="cvv" label="CVV" value={cvv} type="password" inputMode="numeric"
               autoComplete="cc-csc" maxLength={4}
+              onFocus={() => setCvvFocus(true)}
+              onBlur={() => setCvvFocus(false)}
               onChange={(event) => setCvv(event.target.value.replace(/\D/g, "").slice(0, 4))}
               error={fieldErrors.cvv} />
           </div>
