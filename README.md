@@ -167,3 +167,66 @@ ALTER TABLE audit_logs MODIFY COLUMN details TEXT;
 - Legacy orders created before payment tracking have a null payment status and are treated as unpaid. They are excluded from revenue until paid.
 - Password reset requires SMTP configuration. Without it, registration and login still work.
 - This is a demonstration system. Do not use real card data.
+
+---
+
+## Feature review
+
+### Payments — solid
+
+Server-side amount (never trusts the client), ownership check for patients, idempotency key, rate limit after 5 failures in 10 minutes, card data cleared after use, only last-4 stored, receipt numbers, refunds (admin), and notifications. Failed payments return a proper error instead of a 201.
+
+### Prescription flow — solid
+
+Clear status machine: Pending → Received → Preparing → Ready for Collection → Collected. Order is created at Preparing, payment is required before Collected, stock is checked, expiry is handled, and the patient is notified on each step. Ownership checks exist for patient and doctor reads.
+
+### Reports — good
+
+Dashboard stats (patients, appointments, prescriptions, orders, low stock, awaiting collection, payments today, outstanding amount), revenue report with date range and average order value, and CSV export of payments.
+
+### Appointments — good
+
+Patients can only book/cancel their own; doctors and admins have the right access. Validation on the request DTO. Simple and correct.
+
+No critical bugs in these flows. They are ready for demo.
+
+---
+
+## Frontend UX / error handling
+
+Most pages already have loading and error states (`setError` + `parseApiError` + `<Alert>`). Payment checkout is particularly good — it maps decline codes to friendly messages.
+
+| Page | Status |
+|------|--------|
+| PaymentCheckout, Reports, BookAppointment, ConsultationForm, OrderList, PrescriptionQueue, etc. | Good |
+| Dashboard | Fine — it only renders role-based tiles, no data fetch |
+| About / Contact / Home / Services | Static — no error state needed |
+| ConsultationForm | Minor: medication list load failure is swallowed (`setMedications([])`) instead of showing a message |
+
+No urgent fixes required. The silent medication failure is the only small UX gap worth mentioning.
+
+---
+
+## Test coverage
+
+34 test classes covering factories, repositories, most services, and 3 controllers (Consultation, Notification, PrescriptionProcessing).
+
+**Well covered:** PaymentService, PrescriptionProcessingService, Inventory/Medication, Order, UserManagement, SimulatedCardGateway, factories.
+
+**Missing controller tests** (nice-to-have for full marks):
+
+- PaymentController
+- AppointmentController
+- AuthController
+- OrderController
+- ReportController
+- AdminController / ProfileController
+
+**Suggested high-value additions** (if you have time):
+
+1. AppointmentServiceTest — book, cancel, ownership edge cases
+2. PaymentControllerTest — success, decline, wrong patient, already paid
+3. AuthControllerTest or service tests for register / login / reset
+4. One more report test for the date-range validation (`from` after `to`)
+
+You do not need to add all of these. Documenting the existing tests already helps.
