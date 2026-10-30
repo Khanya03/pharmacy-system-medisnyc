@@ -259,3 +259,10 @@ AuthLayout.css
         padding: 28px 20px 24px;
     }
 }
+.auth-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 12px;
+    flex-shrink: 0;
+}

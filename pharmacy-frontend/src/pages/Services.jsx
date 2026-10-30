@@ -16,9 +16,12 @@ const SERVICES = [
 export default function Services() {
   return (
     <PublicLayout>
-      <section className="pub-section" style={{ paddingTop: "56px" }}>
-        <div className="pub-eyebrow">Services</div>
-        <h1 style={{ maxWidth: "24ch" }}>Everything a small pharmacy practice needs, in one system</h1>
+      <section className="pub-section pub-page-head">
+        <img className="pub-page-photo" src="/images/shelf.jpg" alt="Pharmacy stock ready for dispensing" />
+        <div>
+          <div className="pub-eyebrow">Services</div>
+          <h1 style={{ maxWidth: "24ch" }}>Everything a small pharmacy practice needs, in one system</h1>
+        </div>
       </section>
 
       <section className="pub-section" style={{ paddingTop: 0 }}>

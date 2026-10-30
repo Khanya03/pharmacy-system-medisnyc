@@ -23,7 +23,7 @@ export default function PublicLayout({ children }) {
     <div className="public-shell">
       <header className="public-nav">
         <Link to="/" className="public-brand">
-          <span className="public-mark">M</span>
+          <img className="public-logo" src="/images/logo.jpg" alt="" />
           MediSync
         </Link>
 
@@ -64,7 +64,7 @@ export default function PublicLayout({ children }) {
         <div className="public-footer-inner">
           <div>
             <div className="public-brand">
-              <span className="public-mark">M</span>
+              <img className="public-logo" src="/images/logo.jpg" alt="" />
               MediSync
             </div>
             <p className="public-footer-tag">Pharmacy prescription management, from booking to collection.</p>

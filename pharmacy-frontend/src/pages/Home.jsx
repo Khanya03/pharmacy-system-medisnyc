@@ -1,5 +1,3 @@
-
-
 import { Link } from "react-router-dom";
 import PublicLayout from "../components/PublicLayout";
 import "../components/PublicLayout.css";
@@ -12,9 +10,9 @@ const FEATURES = [
 ];
 
 const ROLES = [
-  { title: "Patients", body: "Book appointments, message-free. Track every prescription from pending to ready for collection." },
+  { title: "Patients", body: "Book appointments, track prescriptions, and pay for ready orders." },
   { title: "Doctors", body: "Run consultations, record diagnoses, and issue prescriptions in one flow." },
-  { title: "Admins", body: "Run the pharmacy floor and the system — inventory, prescription processing, users and reports." },
+  { title: "Admins", body: "Run the pharmacy floor — inventory, processing, users and reports." },
 ];
 
 const STEPS = [
@@ -27,20 +25,22 @@ const STEPS = [
 export default function Home() {
   return (
     <PublicLayout>
-      <section className="pub-hero">
-        <h1>Pharmacy prescriptions, from booking to collection, in one place</h1>
-        <p>
-          MediSync connects patients, doctors and pharmacy admins around a single prescription —
-          no phone calls, no guessing whether it's ready yet.
-        </p>
-        <div className="pub-hero-actions">
-          <Link to="/register" className="public-btn public-btn-primary">
-            Get started
-          </Link>
-          <Link to="/login" className="public-btn public-btn-ghost">
-            Login
-          </Link>
+      <section className="pub-hero pub-hero-split">
+        <div className="pub-hero-copy">
+          <div className="pub-eyebrow">MediSync</div>
+          <h1>Pharmacy care, from booking to collection</h1>
+          <p>
+            Patients, doctors and pharmacy staff work from the same prescription —
+            no phone calls, no guessing whether it is ready.
+          </p>
+          <div className="pub-hero-actions">
+            <Link to="/register" className="public-btn public-btn-primary">Get started</Link>
+            <Link to="/login" className="public-btn public-btn-ghost">Login</Link>
+          </div>
         </div>
+        <figure className="pub-hero-figure">
+          <img src="/images/counter.jpg" alt="Pharmacist handing a prepared order to a patient" />
+        </figure>
       </section>
 
       <section className="pub-section">
@@ -56,7 +56,16 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="pub-section" style={{ paddingTop: 0 }}>
+      <section className="pub-band">
+        <img src="/images/shelf.jpg" alt="Organised pharmacy shelves" />
+        <div>
+          <div className="pub-eyebrow">Inventory</div>
+          <h2>Stock you can trust</h2>
+          <p>Batches, expiry dates and low-stock alerts stay visible, so the counter is never guessing.</p>
+        </div>
+      </section>
+
+      <section className="pub-section">
         <div className="pub-eyebrow">Built for three roles</div>
         <div className="pub-grid-3">
           {ROLES.map((r) => (
@@ -68,26 +77,21 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="pub-section" style={{ paddingTop: 0 }}>
-        <div className="pub-eyebrow">How it works</div>
-        <div className="pub-steps">
-          {STEPS.map((s, i) => (
-            <div className="pub-step" key={s.title}>
-              <div className="pub-step-num">{String(i + 1).padStart(2, "0")}</div>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </div>
-          ))}
+      <section className="pub-section pub-consult" style={{ paddingTop: 0 }}>
+        <img src="/images/consult.jpg" alt="Consultation notes, stethoscope and dispensed medicine" />
+        <div>
+          <div className="pub-eyebrow">How it works</div>
+          <div className="pub-steps">
+            {STEPS.map((s, i) => (
+              <div className="pub-step" key={s.title}>
+                <div className="pub-step-num">{String(i + 1).padStart(2, "0")}</div>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
-
-      <div className="pub-cta">
-        <h2>Ready to get your prescriptions in order?</h2>
-        <p>It takes a minute to register — no paperwork.</p>
-        <Link to="/register" className="public-btn public-btn-primary">
-          Create your account
-        </Link>
-      </div>
     </PublicLayout>
   );
 }

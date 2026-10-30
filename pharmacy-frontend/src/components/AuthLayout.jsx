@@ -3,7 +3,7 @@ function AuthLayout({ eyebrow, title, subtitle, children, footer }) {
         <div className="auth-shell">
             <aside className="auth-brand">
                 <div className="auth-brand-top">
-                    <div className="auth-mark">M</div>
+                    <img className="auth-logo" src="/images/logo.jpg" alt="MediSync" />
                     <div>
                         <div className="auth-brand-name">MediSync</div>
                         <div className="auth-brand-sub">Pharmacy Prescription Management System</div>

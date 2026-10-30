@@ -11,7 +11,9 @@ const VALUES = [
 export default function About() {
     return (
         <PublicLayout>
-            <section className="pub-section" style={{ paddingTop: "56px" }}>
+            <section className="pub-section pub-page-head">
+                <img className="pub-page-photo" src="/images/consult.jpg" alt="A consultation ready for prescribing" />
+                <div>
                 <div className="pub-eyebrow">About us</div>
                 <h1 style={{ maxWidth: "26ch" }}>Built to close the gap between a prescription and a patient</h1>
                 <p style={{ color: "var(--ink-soft)", maxWidth: "62ch", marginTop: "16px", fontSize: "15px" }}>
@@ -19,6 +21,7 @@ export default function About() {
                     prescription system that keeps patients, doctors and pharmacy staff working from the
                     same information, instead of three separate systems and a lot of phone calls.
                 </p>
+                </div>
             </section>
 
             <section className="pub-section" style={{ paddingTop: 0 }}>

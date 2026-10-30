@@ -190,11 +190,14 @@ export default function InventoryDashboard() {
 
   return (
     <AppShell>
-      <div className="appts-eyebrow">Module 4</div>
-      <h1>Pharmacy inventory</h1>
-      <p className="appts-sub" style={{ marginBottom: "28px" }}>
-        Manage the medicine catalogue and keep stock levels current.
-      </p>
+      <div className="inventory-banner">
+        <img src="/images/shelf.jpg" alt="Organised pharmacy shelves" />
+        <div>
+          <div className="appts-eyebrow">Module 4</div>
+          <h1>Pharmacy inventory</h1>
+          <p className="appts-sub">Manage the medicine catalogue and keep stock levels current.</p>
+        </div>
+      </div>
 
       <Alert type="error">{error}</Alert>
 
