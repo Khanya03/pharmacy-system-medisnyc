@@ -110,7 +110,6 @@ export default function DoctorsList() {
         <AppShell>
             <div className="appts-header">
                 <div>
-                    <div className="appts-eyebrow">Module 6</div>
                     <h1>Doctors</h1>
                     <p className="appts-sub">Everyone patients can book an appointment with.</p>
                 </div>

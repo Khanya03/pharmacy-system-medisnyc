@@ -193,7 +193,6 @@ export default function InventoryDashboard() {
       <div className="inventory-banner">
         <img src="/images/shelf.jpg" alt="Organised pharmacy shelves" />
         <div>
-          <div className="appts-eyebrow">Module 4</div>
           <h1>Pharmacy inventory</h1>
           <p className="appts-sub">Manage the medicine catalogue and keep stock levels current.</p>
         </div>

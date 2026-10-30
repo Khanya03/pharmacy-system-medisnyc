@@ -30,7 +30,6 @@ export default function AdminOverview() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 6</div>
             <h1>Admin dashboard</h1>
             <p className="appts-sub" style={{ marginBottom: "20px" }}>
                 System-wide statistics, at a glance.

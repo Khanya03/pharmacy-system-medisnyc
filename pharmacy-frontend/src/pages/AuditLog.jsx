@@ -59,7 +59,6 @@ export default function AuditLog() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 6</div>
             <h1>Audit log</h1>
             <p className="appts-sub" style={{ marginBottom: "20px" }}>
                 A record of actions taken across the system.

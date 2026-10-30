@@ -68,7 +68,6 @@ export default function PrescriptionTracking() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 5</div>
             <h1>Track your prescriptions</h1>
             <p className="appts-sub" style={{ marginBottom: "24px" }}>
                 Follow each prescription from pending to ready for collection.

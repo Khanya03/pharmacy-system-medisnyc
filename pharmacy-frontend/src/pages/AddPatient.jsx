@@ -40,7 +40,6 @@ export default function AddPatient() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 6</div>
             <h1>Add a patient</h1>
             <p className="appts-sub" style={{ marginBottom: "20px" }}>
                 For walk-ins who don't have a login account of their own yet.

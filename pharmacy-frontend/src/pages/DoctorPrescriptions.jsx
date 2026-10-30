@@ -43,7 +43,6 @@ export default function DoctorPrescriptions() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 5</div>
             <h1>Prescriptions you've issued</h1>
             <p className="appts-sub" style={{ marginBottom: "24px" }}>
                 See where each prescription sits in the pharmacy pipeline — this list updates automatically.

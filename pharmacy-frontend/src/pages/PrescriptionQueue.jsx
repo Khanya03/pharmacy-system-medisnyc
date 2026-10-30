@@ -122,7 +122,6 @@ export default function PrescriptionQueue() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 5</div>
             <h1>Prescription queue</h1>
             <p className="appts-sub" style={{ marginBottom: "24px" }}>
                 Pending → Received → Preparing → Ready for Collection → Collected.

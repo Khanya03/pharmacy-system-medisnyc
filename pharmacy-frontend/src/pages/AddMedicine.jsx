@@ -105,7 +105,6 @@ export default function AddMedicine() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 4</div>
             <h1>{title}</h1>
             <p className="appts-sub" style={{ marginBottom: "24px" }}>
                 {receiveMode

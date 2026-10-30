@@ -200,7 +200,6 @@ export default function ConsultationForm() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 3</div>
             <h1>Consultation</h1>
             <div className="consult-context">
                 <span>PATIENT: {formatPatientName(patientDetails, patientId || "—")}</span>

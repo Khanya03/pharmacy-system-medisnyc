@@ -239,7 +239,6 @@ export default function UserManagement() {
     <AppShell>
       <div className="appts-header">
         <div>
-          <div className="appts-eyebrow">Module 6</div>
           <h1>User management</h1>
           <p className="appts-sub" style={{ marginBottom: "20px" }}>
             Enable, disable, or change the role of any account.

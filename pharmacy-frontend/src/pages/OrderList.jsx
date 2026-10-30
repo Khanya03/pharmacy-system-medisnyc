@@ -150,7 +150,6 @@ export default function OrdersList() {
     <AppShell>
       <div className="appts-header">
         <div>
-          <div className="appts-eyebrow">Module 4/6</div>
           <h1>Orders</h1>
           <p className="appts-sub">Dispense medication batches to patients and track fulfilment.</p>
         </div>

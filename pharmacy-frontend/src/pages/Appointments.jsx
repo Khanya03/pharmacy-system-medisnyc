@@ -90,7 +90,6 @@ export default function Appointments() {
         <AppShell>
             <div className="appts-header">
                 <div>
-                    <div className="appts-eyebrow">Module 2</div>
                     <h1>{heading}</h1>
                     <p className="appts-sub">{sub}</p>
                 </div>

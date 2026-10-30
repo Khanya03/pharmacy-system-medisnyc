@@ -45,7 +45,6 @@ export default function AddDoctor() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 6</div>
             <h1>Add a doctor</h1>
             <p className="appts-sub" style={{ marginBottom: "20px" }}>
                 Doctors need to exist here before a patient can book an appointment with them.

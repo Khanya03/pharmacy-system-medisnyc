@@ -29,7 +29,6 @@ export default function PatientsList() {
     <AppShell>
       <div className="appts-header">
         <div>
-          <div className="appts-eyebrow">Module 6</div>
           <h1>Patients</h1>
           <p className="appts-sub">Everyone registered in the system, including walk-ins.</p>
         </div>

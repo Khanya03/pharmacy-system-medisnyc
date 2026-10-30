@@ -132,7 +132,6 @@ export default function BookAppointment() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 2</div>
             <h1>Book an appointment</h1>
             <p className="appts-sub">Find the right doctor, then choose a time that works for you.</p>
 

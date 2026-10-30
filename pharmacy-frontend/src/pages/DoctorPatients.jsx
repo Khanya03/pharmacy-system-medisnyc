@@ -52,7 +52,6 @@ export default function DoctorPatients() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 3</div>
             <h1>Your patients</h1>
             <p className="appts-sub" style={{ marginBottom: "20px" }}>
                 Everyone who's booked an appointment with you.

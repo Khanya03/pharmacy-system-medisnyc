@@ -69,7 +69,6 @@ export default function TodaysAppointments() {
     <AppShell>
       <div className="appts-header">
         <div>
-          <div className="appts-eyebrow">Module 3</div>
           <h1>Today's appointments</h1>
           <p className="appts-sub">Start a consultation straight from a booked appointment.</p>
         </div>

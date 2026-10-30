@@ -96,7 +96,6 @@ export default function Reports() {
 
   return (
     <AppShell>
-      <div className="appts-eyebrow">Module 6</div>
       <h1>Reports</h1>
       <p className="appts-sub" style={{ marginBottom: "20px" }}>
         Revenue and system-wide activity.

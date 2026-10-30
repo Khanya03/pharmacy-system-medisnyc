@@ -49,7 +49,6 @@ export default function ReadyForCollection() {
 
     return (
         <AppShell>
-            <div className="appts-eyebrow">Module 5</div>
             <h1>Ready for collection</h1>
             <p className="appts-sub" style={{ marginBottom: "24px" }}>
                 Prescriptions that are ready. Click <strong>Mark collected</strong> on the right when the patient collects it.
