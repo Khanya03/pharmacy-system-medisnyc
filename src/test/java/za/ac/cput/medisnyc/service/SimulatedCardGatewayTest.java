@@ -40,10 +40,10 @@ class SimulatedCardGatewayTest {
     }
 
     @Test
-    void demoRejectsOtherValidCardWithSpecificMessage() {
-        var result = gateway.charge(request("4111111111111111"));
-        assertEquals("DEMO_CARD_ONLY", result.failureCode());
-        assertEquals("Demo mode: use a test card", result.failureReason());
+    void demoApprovesAnyOtherCardNumber() {
+        var result = gateway.charge(request("1234567890123456"));
+        assertTrue(result.approved());
+        assertEquals("3456", result.cardLast4());
     }
 
     @Test

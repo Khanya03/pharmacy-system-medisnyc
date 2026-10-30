@@ -93,7 +93,7 @@ function useCheckout(orderId) {
     const expiryDigits = expiry.replace(/\D/g, "");
     const nextErrors = {};
     if (!cardholderName.trim()) nextErrors.cardholderName = "Enter the name on the card.";
-    if (!passesLuhn(digits)) nextErrors.cardNumber = "Enter a valid card number.";
+    if (!/^\d{12,19}$/.test(digits)) nextErrors.cardNumber = "Enter a card number (12 to 19 digits).";
     if (expiryDigits.length !== 4) {
       nextErrors.expiry = "Enter expiry as MM/YY.";
     } else {

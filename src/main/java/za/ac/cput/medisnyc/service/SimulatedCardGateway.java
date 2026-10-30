@@ -23,8 +23,11 @@ public class SimulatedCardGateway implements PaymentGateway {
         if (request.getCardholderName() == null || request.getCardholderName().isBlank()) {
             return failed(brand, last4, reference, "INVALID_CARD", "Cardholder name is required");
         }
-        if (!number.matches("\\d{12,19}") || !passesLuhn(number) || brand == null) {
-            return failed(brand, last4, reference, "INVALID_CARD", "Card details are invalid");
+        if (!number.matches("\\d{12,19}")) {
+            return failed(brand, last4, reference, "INVALID_CARD", "Card number must be 12 to 19 digits");
+        }
+        if (brand == null) {
+            brand = "Demo";
         }
         if (request.getExpiryMonth() < 1 || request.getExpiryMonth() > 12
                 || request.getExpiryYear() < YearMonth.now().getYear()
@@ -38,19 +41,17 @@ public class SimulatedCardGateway implements PaymentGateway {
 
         if ("demo".equalsIgnoreCase(mode)) {
             String code = switch (number) {
-                case "4242424242424242", "5555555555554444" -> null;
                 case "4000000000000002" -> "CARD_DECLINED";
                 case "4000000000009995" -> "INSUFFICIENT_FUNDS";
                 case "4000000000000069" -> "EXPIRED_CARD";
-                default -> "DEMO_CARD_ONLY";
+                default -> null;
             };
             if (code != null) {
-                String reason = code.equals("DEMO_CARD_ONLY")
-                        ? "Demo mode: use a test card" : switch (code) {
-                            case "CARD_DECLINED" -> "Card was declined";
-                            case "INSUFFICIENT_FUNDS" -> "Insufficient funds";
-                            default -> "Card has expired";
-                        };
+                String reason = switch (code) {
+                    case "CARD_DECLINED" -> "Card was declined";
+                    case "INSUFFICIENT_FUNDS" -> "Insufficient funds";
+                    default -> "Card has expired";
+                };
                 return failed(brand, last4, reference, code, reason);
             }
         }
