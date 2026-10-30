@@ -40,9 +40,18 @@ export default function ConsultationForm() {
     const [savingRx, setSavingRx] = useState(false);
     const [rxError, setRxError] = useState("");
     const [rxSaved, setRxSaved] = useState(false);
+    const [medicationLoadError, setMedicationLoadError] = useState("");
 
     useEffect(() => {
-        medicationApi.getAllMedications().then(setMedications).catch(() => setMedications([]));
+        medicationApi.getAllMedications()
+            .then((list) => {
+                setMedications(list);
+                setMedicationLoadError("");
+            })
+            .catch((err) => {
+                setMedications([]);
+                setMedicationLoadError(parseApiError(err).message || "Could not load the medication list. Try refreshing the page.");
+            });
     }, []);
 
     useEffect(() => {
@@ -282,7 +291,7 @@ export default function ConsultationForm() {
                     <h2>2. Prescription (optional)</h2>
                     <p className="consult-card-sub">Add medications if this patient needs a prescription.</p>
                     <form onSubmit={handleSavePrescription} noValidate>
-                        <Alert type="error">{rxError}</Alert>
+                        <Alert type="error">{medicationLoadError || rxError}</Alert>
 
                         {rxItems.map((item, i) => (
                             <div className="rx-item-row" key={i}>

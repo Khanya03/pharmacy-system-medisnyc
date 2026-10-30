@@ -170,6 +170,52 @@ ALTER TABLE audit_logs MODIFY COLUMN details TEXT;
 
 ---
 
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[React frontend<br/>Vite + React Router] -->|JWT + REST| B[Spring Boot API]
+    B --> C[(MySQL)]
+    B --> D[Simulated card gateway]
+
+    subgraph modules [Main modules]
+        E[Auth & RBAC]
+        F[Appointments]
+        G[Consultations & prescriptions]
+        H[Inventory & orders]
+        I[Payments & reports]
+    end
+    B --- modules
+```
+
+Request flow: the React app stores the JWT and sends it on every API call. Spring Security validates the token, applies role rules, and the controller delegates to a service. Services own the business rules (ownership, status transitions, stock, payment checks) and talk to JPA repositories.
+
+---
+
+## Demo script (about 5–8 minutes)
+
+1. **Login as admin** — `admin` / `Admin@12345`. Show the dashboard tiles (doctors, patients, inventory, reports, audit log).
+2. **Register a patient** (or log in as a seeded patient). Book an appointment with a doctor.
+3. **Login as a doctor** (seeded doctor password: `password`). Open today's appointments, start a consultation, save a medical record, and issue a prescription.
+4. **Login as admin/pharmacist**. Open the prescription queue. Advance the prescription: Pending → Received → Preparing (order is created here) → Ready for Collection.
+5. **Pay the order**. Use test card `4242 4242 4242 4242`, any future expiry, any CVV. Show the receipt. Optionally try `4000 0000 0000 0002` to show a decline message.
+6. **Collect**. Advance to Collected. Show that collection is blocked if the order is still unpaid (if you demo that path).
+7. **Reports**. Open reports: dashboard stats, revenue for a date range, and CSV export.
+8. **Audit log**. Show the recorded actions (payment, status changes, etc.).
+
+Suggested screenshots to add later (place them in `docs/screenshots/` and link them here):
+
+- Login / dashboard
+- Book appointment
+- Consultation form
+- Prescription queue
+- Payment checkout and receipt
+- Reports
+
+---
+
 ## Feature review
 
 ### Payments — solid
@@ -201,32 +247,27 @@ Most pages already have loading and error states (`setError` + `parseApiError` +
 | PaymentCheckout, Reports, BookAppointment, ConsultationForm, OrderList, PrescriptionQueue, etc. | Good |
 | Dashboard | Fine — it only renders role-based tiles, no data fetch |
 | About / Contact / Home / Services | Static — no error state needed |
-| ConsultationForm | Minor: medication list load failure is swallowed (`setMedications([])`) instead of showing a message |
+| ConsultationForm | Fixed — medication list load failure now shows an error message |
 
-No urgent fixes required. The silent medication failure is the only small UX gap worth mentioning.
+The previous silent medication-load failure has been fixed.
 
 ---
 
 ## Test coverage
 
-34 test classes covering factories, repositories, most services, and 3 controllers (Consultation, Notification, PrescriptionProcessing).
+Test classes covering factories, repositories, most services, and controllers (Consultation, Notification, PrescriptionProcessing, Payment).
 
-**Well covered:** PaymentService, PrescriptionProcessingService, Inventory/Medication, Order, UserManagement, SimulatedCardGateway, factories.
+**Well covered:** PaymentService, PrescriptionProcessingService, Inventory/Medication, Order, UserManagement, SimulatedCardGateway, factories, AppointmentService, PaymentController, ReportService date validation.
 
-**Missing controller tests** (nice-to-have for full marks):
+**Added:**
 
-- PaymentController
+- `AppointmentServiceTest` — book, reject missing doctor/patient, cancel, invalid status transition
+- `PaymentControllerTest` — patient ownership, staff payment, missing patient profile
+- `ReportServiceTest` — rejects a revenue report when `from` is after `to`
+
+**Still optional:**
+
 - AppointmentController
 - AuthController
 - OrderController
-- ReportController
 - AdminController / ProfileController
-
-**Suggested high-value additions** (if you have time):
-
-1. AppointmentServiceTest — book, cancel, ownership edge cases
-2. PaymentControllerTest — success, decline, wrong patient, already paid
-3. AuthControllerTest or service tests for register / login / reset
-4. One more report test for the date-range validation (`from` after `to`)
-
-You do not need to add all of these. Documenting the existing tests already helps.

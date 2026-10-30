@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class ReportServiceTest {
@@ -65,5 +67,18 @@ class ReportServiceTest {
         assertEquals("4242", row.get("last4"));
         org.junit.jupiter.api.Assertions.assertFalse(csv.contains("4242424242424242"));
         org.junit.jupiter.api.Assertions.assertFalse(csv.toLowerCase().contains("cvv"));
+    }
+
+    @Test
+    void rejectsRevenueReportWhenFromIsAfterTo() {
+        ReportService service = new ReportService(mock(OrderJpaRepository.class),
+                mock(PrescriptionJpaRepository.class), mock(PatientJpaRepository.class),
+                mock(AppointmentJpaRepository.class), mock(InventoryJpaRepository.class),
+                mock(PaymentJpaRepository.class));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                service.getRevenueReport(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 1)));
+
+        assertTrue(ex.getMessage().contains("from"));
     }
 }
