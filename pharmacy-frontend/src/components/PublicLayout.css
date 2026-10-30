@@ -410,3 +410,19 @@
     .pub-page-head { grid-template-columns: 1fr; }
     .pub-hero-copy h1 { max-width: none; }
 }
+
+.public-scene { position: relative; isolation: isolate; }
+.public-scene::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+        linear-gradient(180deg, rgba(243, 246, 244, 0.62) 0%, rgba(219, 231, 224, 0.48) 100%),
+        var(--scene-image) center / cover no-repeat;
+    filter: saturate(0.65) brightness(1.02);
+}
+.public-scene-shelf { --scene-image: url("/images/shelf.jpg"); }
+.public-scene-counter { --scene-image: url("/images/counter.jpg"); }
+.public-scene-consult { --scene-image: url("/images/consult.jpg"); }
+.public-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); }

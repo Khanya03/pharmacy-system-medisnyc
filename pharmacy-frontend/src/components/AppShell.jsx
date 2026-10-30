@@ -1,13 +1,21 @@
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import NotificationBell from "./NotificationBell";
 import "./AppShell.css";
 
+function sceneFor(pathname) {
+    if (pathname.startsWith("/consult") || pathname.startsWith("/prescription")) return "consult";
+    if (pathname.startsWith("/appointment") || pathname.startsWith("/admin/patients") || pathname.startsWith("/admin/doctors")) return "counter";
+    return "shelf";
+}
+
 export default function AppShell({ children }) {
     const { user, logout, primaryRole } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const role = primaryRole();
+    const scene = sceneFor(location.pathname);
 
     function handleLogout() {
         logout();
@@ -15,7 +23,7 @@ export default function AppShell({ children }) {
     }
 
     return (
-        <div className="shell">
+        <div className={`shell shell-scene shell-scene-${scene}`}>
             <header className="shell-nav">
                 <Link to="/dashboard" className="shell-brand">
                     <span className="shell-mark">M</span>

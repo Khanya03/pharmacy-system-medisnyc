@@ -97,3 +97,24 @@
     width: 100%;
     margin: 0 auto;
 }
+.shell-scene {
+    position: relative;
+    isolation: isolate;
+}
+.shell-scene::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+        linear-gradient(180deg, rgba(243, 246, 244, 0.55) 0%, rgba(219, 231, 224, 0.42) 100%),
+        var(--scene-image) center / cover no-repeat;
+    filter: saturate(0.7) brightness(1.02);
+}
+.shell-scene-shelf { --scene-image: url("/images/shelf.jpg"); }
+.shell-scene-counter { --scene-image: url("/images/counter.jpg"); }
+.shell-scene-consult { --scene-image: url("/images/consult.jpg"); }
+.shell-nav {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+}

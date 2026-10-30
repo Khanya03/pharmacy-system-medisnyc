@@ -1,5 +1,5 @@
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import "./PublicLayout.css";
 
@@ -10,9 +10,17 @@ const NAV_LINKS = [
   { to: "/contact", label: "Contact" },
 ];
 
+function sceneFor(pathname) {
+  if (pathname.startsWith("/about") || pathname.startsWith("/contact")) return "consult";
+  if (pathname.startsWith("/services")) return "shelf";
+  return "counter";
+}
+
 export default function PublicLayout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const scene = sceneFor(location.pathname);
 
   function handleLogout() {
     logout();
@@ -20,7 +28,7 @@ export default function PublicLayout({ children }) {
   }
 
   return (
-    <div className="public-shell">
+    <div className={`public-shell public-scene public-scene-${scene}`}>
       <header className="public-nav">
         <Link to="/" className="public-brand">
           <img className="public-logo" src="/images/logo.jpg" alt="" />

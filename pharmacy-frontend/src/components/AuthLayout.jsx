@@ -1,6 +1,6 @@
 function AuthLayout({ eyebrow, title, subtitle, children, footer }) {
     return (
-        <div className="auth-shell">
+        <div className="auth-shell auth-scene">
             <aside className="auth-brand">
                 <div className="auth-brand-top">
                     <img className="auth-logo" src="/images/logo.jpg" alt="MediSync" />
