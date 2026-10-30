@@ -11,7 +11,7 @@ export default function AppShell({ children }) {
 
     function handleLogout() {
         logout();
-        navigate("/login", { replace: true });
+        navigate("/login", { replace: true, state: null });
     }
 
     return (

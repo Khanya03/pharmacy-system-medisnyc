@@ -37,8 +37,6 @@ export default function Login() {
     setSubmitting(true);
     try {
       await login(form);
-      const redirectTo = location.state?.from || "/dashboard";
-      navigate(redirectTo, { replace: true });
     } catch (err) {
       const parsed = parseApiError(err);
       setError(parsed.message);
@@ -47,6 +45,10 @@ export default function Login() {
       setSubmitting(false);
     }
   }
+
+  useEffect(() => {
+    if (user) navigate("/dashboard", { replace: true });
+  }, [user, navigate]);
 
   if (user) return <Navigate to="/dashboard" replace />;
 
