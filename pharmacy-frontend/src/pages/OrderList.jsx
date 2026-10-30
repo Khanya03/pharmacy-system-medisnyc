@@ -239,13 +239,6 @@ export default function OrdersList() {
                 <td><StatusBadge status={o.dispensingStatus} /></td>
                 <td><StatusBadge status={o.paymentStatus || "UNPAID"} /></td>
                 <td>
-                  {(o.paymentStatus || "UNPAID") === "UNPAID" && (
-                    <Link className="admin-toggle-btn" to={`/orders/${encodeURIComponent(o.orderId)}/pay`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setCheckoutOrderId(o.orderId);
-                      }}>Charge card</Link>
-                  )}
                   {o.paymentStatus === "PAID" && (
                     <button className="admin-toggle-btn" onClick={() => handleReceipt(o)}>Receipt</button>
                   )}

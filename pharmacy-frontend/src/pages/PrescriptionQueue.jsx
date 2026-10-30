@@ -5,7 +5,6 @@ import StatusBadge from "../components/StatusBadge";
 import * as processingApi from "../api/prescriptionProcessingApi";
 import * as orderApi from "../api/orderApi";
 import { parseApiError } from "../utils/parseApiError";
-import { Link } from "react-router-dom";
 import "./Appointments.css";
 import "./Prescriptions.css";
 import "./Payments.css";
@@ -223,12 +222,6 @@ export default function PrescriptionQueue() {
                                             ? "Updating…"
                                             : NEXT_LABEL[status] || "No further action"}
                                     </button>
-                                    {paymentDue && (
-                                        <Link className="rx-queue-advance-btn"
-                                            to={`/orders/${encodeURIComponent(prescription.linkedOrder.orderId)}/pay`}>
-                                            Take payment
-                                        </Link>
-                                    )}
                                     {rowError && (
                                         <div className="rx-queue-row-error" role="alert">
                                             <div>{rowError.message}</div>
