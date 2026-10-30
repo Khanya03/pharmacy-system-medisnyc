@@ -58,3 +58,33 @@
     font-size: 13.5px;
     line-height: 1.5;
 }
+.dash-page {
+    position: relative;
+    isolation: isolate;
+    margin: -8px -4px 0;
+    padding: 8px 4px 12px;
+    border-radius: 18px;
+}
+.dash-page::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    border-radius: inherit;
+    background:
+        linear-gradient(180deg, rgba(243, 246, 244, 0.88) 0%, rgba(219, 231, 224, 0.82) 100%),
+        url("/images/shelf.jpg") center / cover no-repeat;
+    filter: saturate(0.35) brightness(1.05);
+}
+.dash-page::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(243, 246, 244, 0.55), rgba(31, 75, 63, 0.08));
+}
+.dash-tile {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(4px);
+}

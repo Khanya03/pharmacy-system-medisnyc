@@ -59,6 +59,7 @@ export default function Dashboard() {
 
     return (
         <AppShell>
+            <div className="dash-page">
             <div className="dash-eyebrow">Dashboard</div>
             <h1>Welcome back, {user?.username}</h1>
             <p className="dash-sub">{ROLE_COPY[role] || "Your role determines what you can do next."}</p>
@@ -70,6 +71,7 @@ export default function Dashboard() {
                         <p>{tile.body}</p>
                     </Link>
                 ))}
+            </div>
             </div>
         </AppShell>
     );
