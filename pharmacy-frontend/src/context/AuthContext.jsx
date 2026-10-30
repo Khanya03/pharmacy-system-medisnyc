@@ -3,20 +3,39 @@ import { AuthContext } from "./AuthState";
 import * as authApi from "../api/authApi";
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(() => {
-        const stored = localStorage.getItem("rx_user");
-        return stored ? JSON.parse(stored) : null;
-    });
+    const [user, setUser] = useState(null);
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
-        // On page load, if we have a token, refresh full profile details
-        // (linkedProfileId etc. aren't in the login response, only /api/profile/me).
-        if (localStorage.getItem("rx_token")) {
-            refreshProfile().finally(() => setReady(true));
-        } else {
-            setReady(true);
+        let active = true;
+        async function restoreSession() {
+            try {
+                const { bootId } = await authApi.getBootId();
+                const savedBoot = localStorage.getItem("rx_boot");
+                if (savedBoot !== bootId) {
+                    localStorage.removeItem("rx_token");
+                    localStorage.removeItem("rx_user");
+                    localStorage.setItem("rx_boot", bootId);
+                    if (active) setReady(true);
+                    return;
+                }
+            } catch {
+                localStorage.removeItem("rx_token");
+                localStorage.removeItem("rx_user");
+                if (active) setReady(true);
+                return;
+            }
+            if (!localStorage.getItem("rx_token")) {
+                if (active) setReady(true);
+                return;
+            }
+            const stored = localStorage.getItem("rx_user");
+            if (stored && active) setUser(JSON.parse(stored));
+            await refreshProfile();
+            if (active) setReady(true);
         }
+        restoreSession();
+        return () => { active = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

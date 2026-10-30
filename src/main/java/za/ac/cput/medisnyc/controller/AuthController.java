@@ -12,7 +12,9 @@ import za.ac.cput.medisnyc.dto.ForgotPasswordRequest;
 import za.ac.cput.medisnyc.dto.LoginRequest;
 import za.ac.cput.medisnyc.dto.RegisterRequest;
 import za.ac.cput.medisnyc.dto.ResetPasswordRequest;
+import za.ac.cput.medisnyc.security.AppBootId;
 import za.ac.cput.medisnyc.service.AuthService;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,10 +24,17 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final AppBootId appBootId;
 
     @Autowired
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, AppBootId appBootId) {
         this.authService = authService;
+        this.appBootId = appBootId;
+    }
+
+    @GetMapping("/boot")
+    public ResponseEntity<Map<String, String>> boot() {
+        return ResponseEntity.ok(Map.of("bootId", appBootId.getId()));
     }
 
     @PostMapping("/register")

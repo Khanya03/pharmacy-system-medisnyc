@@ -18,6 +18,10 @@ export function register({ username, email, password, firstName, lastName, role,
         .then((res) => res.data);
 }
 
+export function getBootId() {
+    return client.get("/api/auth/boot").then((res) => res.data);
+}
+
 export function login({ username, password }) {
     return client.post("/api/auth/login", { username, password }).then((res) => res.data);
 }
