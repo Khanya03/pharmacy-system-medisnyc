@@ -68,16 +68,16 @@
     inset: 0;
     z-index: -2;
     background:
-        linear-gradient(180deg, rgba(243, 246, 244, 0.78) 0%, rgba(219, 231, 224, 0.72) 100%),
+        linear-gradient(180deg, rgba(243, 246, 244, 0.28) 0%, rgba(219, 231, 224, 0.18) 100%),
         url("/images/shelf.jpg") center / cover no-repeat;
-    filter: saturate(0.4);
+    filter: saturate(0.9) brightness(1.08);
 }
 .dash-page::after {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
-    background: linear-gradient(180deg, rgba(243, 246, 244, 0.35), rgba(19, 51, 42, 0.12));
+    background: linear-gradient(180deg, rgba(243, 246, 244, 0.08), rgba(19, 51, 42, 0.04));
 }
 .dash-tile {
     background: rgba(255, 255, 255, 0.92);
