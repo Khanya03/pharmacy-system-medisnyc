@@ -37,12 +37,12 @@ public interface PaymentJpaRepository extends JpaRepository<Payment, String> {
             + "and (:toDate is null or p.paidAt < :toDate)")
     Object[] revenueTotals(@Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
 
-    @Query("select function('DATE', p.paidAt), "
+    @Query("select cast(p.paidAt as LocalDate), "
             + "sum(case when p.status = za.ac.cput.medisnyc.domain.PaymentStatus.PAID then p.amount "
             + "when p.status = za.ac.cput.medisnyc.domain.PaymentStatus.REFUNDED then -p.amount else 0 end) "
             + "from Payment p where p.status in (za.ac.cput.medisnyc.domain.PaymentStatus.PAID, "
             + "za.ac.cput.medisnyc.domain.PaymentStatus.REFUNDED) and p.paidAt >= :fromDate and p.paidAt < :toDate "
-            + "group by function('DATE', p.paidAt) order by function('DATE', p.paidAt)")
+            + "group by cast(p.paidAt as LocalDate) order by cast(p.paidAt as LocalDate)")
     List<Object[]> revenueByDay(@Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
 
     @Query("select p.cardBrand, "

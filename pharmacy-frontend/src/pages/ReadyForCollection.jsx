@@ -52,7 +52,7 @@ export default function ReadyForCollection() {
             <div className="appts-eyebrow">Module 5</div>
             <h1>Ready for collection</h1>
             <p className="appts-sub" style={{ marginBottom: "24px" }}>
-                Patients waiting at the counter for a prescription that's been prepared.
+                Prescriptions that are ready. Click <strong>Mark collected</strong> on the right when the patient collects it.
             </p>
 
             <Alert type="error">{error}</Alert>
@@ -77,7 +77,7 @@ export default function ReadyForCollection() {
                                     onClick={() => handleCollect(p.prescriptionId)}
                                     disabled={collectingId === p.prescriptionId}
                                 >
-                                    {collectingId === p.prescriptionId ? "Collecting…" : "Mark collected"}
+                                    {collectingId === p.prescriptionId ? "Collecting…" : "Mark as collected"}
                                 </button>
                             </div>
                         </div>

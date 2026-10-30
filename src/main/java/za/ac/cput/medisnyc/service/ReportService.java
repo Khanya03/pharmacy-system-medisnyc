@@ -66,10 +66,10 @@ public class ReportService {
         }
         LocalDateTime start = from == null ? null : from.atStartOfDay();
         LocalDateTime end = to == null ? null : to.plusDays(1).atStartOfDay();
-        Object[] totals = paymentRepository.revenueTotals(start, end);
-        BigDecimal grossPaid = decimal(totals == null ? null : totals[0]);
-        BigDecimal refunds = decimal(totals == null ? null : totals[1]);
-        long paidOrders = number(totals == null ? null : totals[2]);
+        Object[] totals = unwrap(paymentRepository.revenueTotals(start, end));
+        BigDecimal grossPaid = decimal(valueAt(totals, 0));
+        BigDecimal refunds = decimal(valueAt(totals, 1));
+        long paidOrders = number(valueAt(totals, 2));
         long failedPayments = paymentRepository.countByStatusAndCreatedAtRange(
                 PaymentStatus.FAILED, start, end);
         BigDecimal totalRevenue = grossPaid.subtract(refunds);
@@ -88,7 +88,9 @@ public class ReportService {
         LocalDateTime dailyStartTime = dailyStart.atStartOfDay();
         LocalDateTime dailyEndTime = dailyEnd.plusDays(1).atStartOfDay();
         Map<LocalDate, BigDecimal> amountsByDate = new LinkedHashMap<>();
-        for (Object[] row : paymentRepository.revenueByDay(dailyStartTime, dailyEndTime)) {
+        for (Object[] raw : paymentRepository.revenueByDay(dailyStartTime, dailyEndTime)) {
+            Object[] row = unwrap(raw);
+            if (row.length < 2 || row[0] == null) continue;
             amountsByDate.put(localDate(row[0]), decimal(row[1]));
         }
         List<Map<String, Object>> byDay = new ArrayList<>();
@@ -100,9 +102,11 @@ public class ReportService {
         }
 
         List<Map<String, Object>> byCardBrand = new ArrayList<>();
-        for (Object[] row : paymentRepository.revenueByCardBrand(dailyStartTime, dailyEndTime)) {
+        for (Object[] raw : paymentRepository.revenueByCardBrand(dailyStartTime, dailyEndTime)) {
+            Object[] row = unwrap(raw);
+            if (row.length < 3) continue;
             Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("brand", row[0]);
+            entry.put("brand", row[0] == null ? "Unknown" : row[0]);
             entry.put("amount", decimal(row[1]));
             entry.put("count", number(row[2]));
             byCardBrand.add(entry);
@@ -122,6 +126,18 @@ public class ReportService {
         return report;
     }
 
+
+    private Object[] unwrap(Object[] row) {
+        if (row != null && row.length == 1 && row[0] instanceof Object[] nested) {
+            return nested;
+        }
+        return row == null ? new Object[0] : row;
+    }
+
+    private Object valueAt(Object[] row, int index) {
+        return row != null && index < row.length ? row[index] : null;
+    }
+
     private BigDecimal decimal(Object value) {
         if (value instanceof BigDecimal amount) return amount;
         if (value instanceof Number number) return BigDecimal.valueOf(number.doubleValue());
@@ -134,7 +150,12 @@ public class ReportService {
 
     private LocalDate localDate(Object value) {
         if (value instanceof LocalDate date) return date;
+        if (value instanceof LocalDateTime dateTime) return dateTime.toLocalDate();
         if (value instanceof Date date) return date.toLocalDate();
-        return LocalDate.parse(value.toString());
+        if (value instanceof java.util.Date date) {
+            return date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        }
+        String text = value.toString();
+        return LocalDate.parse(text.length() >= 10 ? text.substring(0, 10) : text);
     }
 }
