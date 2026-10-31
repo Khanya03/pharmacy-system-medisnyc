@@ -1,5 +1,6 @@
 .bell-wrap {
     position: relative;
+    display: inline-flex;
 }
 
 .bell-btn {
@@ -41,16 +42,17 @@
 
 .bell-panel {
     position: absolute;
-    top: 42px;
+    top: calc(100% + 8px);
     right: 0;
     width: 300px;
+    max-width: calc(100vw - 32px);
     max-height: 360px;
     overflow-y: auto;
     background: var(--paper-raised);
     border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-    z-index: 50;
+    z-index: 1000;
 }
 
 .bell-panel-head {
