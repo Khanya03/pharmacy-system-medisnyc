@@ -115,6 +115,9 @@
 .shell-scene-counter { --scene-image: url("/images/counter.jpg"); }
 .shell-scene-consult { --scene-image: url("/images/consult.jpg"); }
 .shell-nav {
+    /* backdrop-filter traps the bell panel in this stacking context; lift the nav above .dash-page (z-index: 1) so the hero does not paint through it. */
+    position: relative;
+    z-index: 100;
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(8px);
 }
